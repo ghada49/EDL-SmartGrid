@@ -1,0 +1,10 @@
+{
+  "features": [
+    "Longitude",
+    "Latitude",
+    "log_kwh",
+    "log_apartments",
+    "log_kwh_per_apartment",
+    "log_age"
+  ]
+}
