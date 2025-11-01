@@ -1,9 +1,11 @@
 fastapi
-uvicorn
+uvicorn[standard]
 sqlalchemy
-pydantic
+pydantic>=2
 python-multipart
 pandas
 numpy
-reportlab
+scikit-learn
 joblib
+reportlab
+tensorflow
