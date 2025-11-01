@@ -1,0 +1,8 @@
+Create a venv environement(chat gpt ale a7sn mn eno ykun interpreter global lal projects) 
+to access l backend
+pip install -r requirements.txt
+py -m pip install uvicorn (hy bas awl mra)
+Run the API: 
+uvicorn app.main:app --reload
+
+Open docs at http://127.0.0.1:8000/docs.
