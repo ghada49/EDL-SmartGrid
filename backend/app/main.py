@@ -7,10 +7,13 @@ from app.utils.validation import validate_csv, df_to_buildings
 from app.utils.pdf import create_inspection_report
 from app.utils.drift import simple_drift_report
 import os, shutil, time
+from app.routers import buildings   # <-- your /v1 scoring routes
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="EECE490 - Backend", version="0.1.0")
+
+app.include_router(buildings.router, prefix="/v1", tags=["scoring"])
 
 @app.get("/health")
 def health():
