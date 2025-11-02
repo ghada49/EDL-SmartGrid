@@ -1,6 +1,6 @@
 
 from fastapi import APIRouter
-from models.schemas import Building, BatchIn, ScoreOut
+from app.models.schemas import Building, BatchIn, ScoreOut
 from utils.preprocess import to_dataframe_one, add_derived
 from utils.scoring import score_row
 import pandas as pd
