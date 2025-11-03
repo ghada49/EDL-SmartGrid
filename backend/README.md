@@ -1,24 +1,23 @@
-# EECE490 Week 1 — Student 3 (Platform & Ops)
+Backend (FastAPI) — Auth + RBAC
 
-This is a minimal, working scaffold to complete **Week 1** tasks for Student 3:
-- Dataset upload + validation
-- SQLite schema (users, buildings, cases, tickets, model_versions)
-- Stats endpoint `/public/stats`
-- PDF reporting utility (inspection sheet)
-- Model upload + activate endpoints
-- Simple dataset drift report
+Run (dev)
+- Create a virtualenv and install deps: `pip install -r backend/requirements.txt`
+- Copy `backend/.env.example` to `backend/.env` and adjust values.
+- Initialize DB tables automatically on first run.
+- Start server: `uvicorn backend.app:app --reload`
 
-## How to run
-```bash
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-Visit interactive docs at: `http://127.0.0.1:8000/docs`
+Seed Admin
+- `python -m backend.seed_admin`
 
-## Endpoints
-- `POST /upload_dataset` — upload CSV; validates and stores rows into `buildings` table.
-- `GET /public/stats` — returns mock/aggregated stats.
-- `POST /models/upload` — upload a model artifact file; stores metadata in DB and file to `models_repo/`.
-- `POST /model/activate` — activate a model by id.
-- `POST /drift_report` — compare uploaded CSV to the last ingested dataset and return simple drift flags.
-- `GET /health` — health check.
+Endpoints
+- `POST /auth/signup` — Citizen signup (returns UserOut)
+- `POST /auth/login` — returns Bearer token
+- `POST /auth/signup/admin` — Admin-only create users (roles: Citizen/Inspector/Manager/Admin)
+- `GET /users/me` — current user profile
+- `GET /reports/kpi` — Manager/Admin only
+- `POST /inspections/assign` — Inspector/Manager/Admin only
+
+Notes
+- `DB_URL` can be SQLite for local testing, e.g., `sqlite:///./app.db`.
+- For Postgres, ensure `psycopg2-binary` is installed and DB is reachable.
+
