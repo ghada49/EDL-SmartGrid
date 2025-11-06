@@ -1,6 +1,6 @@
 
 from fastapi.testclient import TestClient
-from main import app
+from backend.app import app
 
 client = TestClient(app)
 
@@ -22,14 +22,14 @@ def test_health():
     assert r.json().get("status") == "ok"
 
 def test_score_one():
-    r = client.post("/v1/score", json=good_item)
+    r = client.post("/ml/v1/score", json=good_item)
     assert r.status_code == 200
     data = r.json()
     assert "score" in data and "is_fraud" in data
 
 def test_batch_score():
     payload = {"items":[good_item, good_item]}
-    r = client.post("/v1/batch/score", json=payload)
+    r = client.post("/ml/v1/batch/score", json=payload)
     assert r.status_code == 200
     data = r.json()
     assert "results" in data and "summary" in data
