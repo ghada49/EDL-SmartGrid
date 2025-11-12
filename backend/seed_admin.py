@@ -4,8 +4,23 @@ import os
 
 from sqlalchemy.orm import Session
 
-# Use absolute imports so this script works with `python backend/seed_admin.py`
-from backend.config import settings
+# Support both `python -m backend.seed_admin` and `python backend/seed_admin.py`.
+# If run directly, ensure the project root is on sys.path so `import backend` works.
+try:  # normal path when executed as a module
+    from backend.config import settings
+    from backend.db import Base, engine, SessionLocal
+    from backend.models.user import User
+    from backend.security import get_password_hash
+except ModuleNotFoundError:
+    import os
+    import sys
+    ROOT = os.path.dirname(os.path.dirname(__file__))
+    if ROOT not in sys.path:
+        sys.path.insert(0, ROOT)
+    from backend.config import settings
+    from backend.db import Base, engine, SessionLocal
+    from backend.models.user import User
+    from backend.security import get_password_hash
 from backend.db import Base, engine, SessionLocal
 from backend.models.user import User
 from backend.security import get_password_hash

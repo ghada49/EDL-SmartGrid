@@ -6,6 +6,7 @@ type Role = 'Citizen' | 'Inspector' | 'Manager' | 'Admin' | null
 
 interface AuthState {
   token: string | null
+  user_id?: string | null
   role: Role
   full_name: string | null
   loading: boolean
@@ -21,6 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [role, setRole] = useState<Role>((localStorage.getItem('role') as Role) || null)
   const [loading, setLoading] = useState<boolean>(false)
   const [full_name, setFullName] = useState<string | null>(localStorage.getItem('full_name'))
+  const [user_id, setUserId] = useState<string | null>(localStorage.getItem('user_id'))
   const navigate = useNavigate()
 
   const redirectByRole = (r: Role) => {
@@ -35,16 +37,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const u = await apiMe()
         setRole(u.role as Role)
+        setUserId(u.id)
         setFullName(u.full_name)
         localStorage.setItem('role', u.role)
+        localStorage.setItem('user_id', u.id)
         localStorage.setItem('full_name', u.full_name)
       } catch {
         localStorage.removeItem('token')
         localStorage.removeItem('role')
+        localStorage.removeItem('user_id')
         localStorage.removeItem('full_name')
         setToken(null)
         setRole(null)
         setFullName(null)
+        setUserId(null)
       }
     }
     hydrate()
@@ -59,8 +65,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(access_token)
       const u = await apiMe()
       setRole(u.role as Role)
+      setUserId(u.id)
       setFullName(u.full_name)
       localStorage.setItem('role', u.role)
+      localStorage.setItem('user_id', u.id)
       localStorage.setItem('full_name', u.full_name)
       redirectByRole(u.role as Role)
     } finally {
@@ -83,13 +91,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('role')
+    localStorage.removeItem('user_id')
     setToken(null)
     setRole(null)
+    setUserId(null)
     navigate('/login')
   }
   const value = useMemo<AuthState>(
-  () => ({ token, role, full_name, loading, signIn, signOut, signUpCitizen }),
-  [token, role, full_name, loading]
+  () => ({ token, user_id, role, full_name, loading, signIn, signOut, signUpCitizen }),
+  [token, user_id, role, full_name, loading]
 )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

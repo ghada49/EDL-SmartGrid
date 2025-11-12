@@ -532,8 +532,9 @@ body {
 .eco-hero { text-align: center; margin: 0 auto 2rem; max-width: 780px; }
 .eco-title { font-size: 2.4rem; font-weight: 800; margin: 0 0 .5rem; color: #0d3b18; }
 .eco-sub { color: #388e3c; margin: 0; }
-.eco-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
-.eco-grid.two { grid-template-columns: repeat(2, minmax(340px, 1fr)); }
+.eco-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: stretch; grid-auto-rows: 1fr; }
+.eco-grid.two { grid-template-columns: repeat(2, minmax(340px, 1fr)); grid-auto-rows: auto; }
+.eco-grid.two .eco-card { height: auto; }
 @media (max-width: 900px) { .eco-grid.two { grid-template-columns: 1fr; } }
 .eco-card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem; }
 .eco-icon-sm { opacity:.9; color: var(--accent); }
@@ -548,6 +549,11 @@ body {
 }
 .eco-actions { display:flex; gap:.5rem; align-items:center; }
 .eco-steps { list-style: decimal; padding-left: 1.1rem; color:#054705; }
+
+/* Equal-height cards within grid and scroll for long inspector card */
+.eco-card { height: 100%; display: flex; flex-direction: column; }
+.inspector-grid { grid-template-columns: repeat(3, minmax(320px, 1fr)); }
+.inspector-cases .cases-scroll { overflow: auto; max-height: 460px; }
 .eco-steps li { margin: .25rem 0; }
 .eco-slider { margin: .6rem 0 1rem; }
 .eco-slider input[type="range"] { width:100%; }

@@ -5,8 +5,8 @@ from ..utils.scoring import score_row
 import pandas as pd
 
 
-router = APIRouter(prefix="/v1", tags=["buildings"])
-
+#router = APIRouter(prefix="/v1", tags=["buildings"])
+router = APIRouter(prefix="/ml/v1", tags=["Model Scoring"])
 
 @router.post("/score", response_model=ScoreOut)
 def score_api(b: Building):

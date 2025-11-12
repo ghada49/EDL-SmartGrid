@@ -15,15 +15,22 @@ from .routers import data_ops as ops_router
 from . import models  # ensure package exists
 from .models import user as user_model  # import to register
 from .models import ops as ops_models  # import to register
+from fastapi import FastAPI
+from backend.routers import tickets
+from backend.routers import tickets_admin
+#from .models import data_upload  # noqa: F401
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="EECE-490 Backend", version="0.1.0")
+    app = FastAPI(title="Backend", version="0.1.0")
 
     # CORS (allow Vite dev server)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173"],
+        allow_origins=[
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -37,9 +44,12 @@ def create_app() -> FastAPI:
     app.include_router(cases_router.router)
     app.include_router(inspections_router.router)
     app.include_router(reports_router.router)
-    app.include_router(ml_router.router, prefix="/ml", tags=["Model Scoring"])
+    #app.include_router(ml_router.router, prefix="/ml", tags=["Model Scoring"])
+    app.include_router(ml_router.router)
     app.include_router(ops_router.router)
-
+    app.include_router(tickets.router)
+    app.include_router(tickets_admin.router)
+    
     @app.get("/health")
     def health():
         return {"status": "ok"}
