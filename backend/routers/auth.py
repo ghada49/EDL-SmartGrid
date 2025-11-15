@@ -11,6 +11,7 @@ from ..models.user import User
 from ..schemas.auth import UserCreate, UserLogin, UserOut, Token
 from ..security import verify_password, get_password_hash, create_access_token
 from ..deps import require_roles, get_current_user
+from .users import ensure_inspector_profile
 from ..config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -70,6 +71,9 @@ def admin_create_user(
         is_active=True,
     )
     db.add(user)
+    db.flush()
+    if user.role == "Inspector":
+        ensure_inspector_profile(db, user, active=True)
     db.commit()
     db.refresh(user)
     return user

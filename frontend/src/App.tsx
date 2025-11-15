@@ -1,19 +1,18 @@
-import React from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
-import LeftNav from './components/LeftNav'
-import Home from './pages/Home'
-import Login from './pages/Login'
-import Signup from './pages/Signup'
-import CitizenPortal from './pages/CitizenPortal'
-import InspectorRoutes from './pages/InspectorRoutes'
-import ManagerDashboard from './pages/ManagerDashboard'
-import MapView from './pages/MapView'
-import ProtectedRoute from './routes/ProtectedRoute'
-import TopNav from './components/TopNav'
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import LeftNav from "./components/LeftNav";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import CitizenPortal from "./pages/CitizenPortal";
+import InspectorRoutes from "./pages/InspectorRoutes";
+import ManagerDashboard from "./pages/ManagerDashboard";
+import MapView from "./pages/MapView";
+import ProtectedRoute from "./routes/ProtectedRoute";
 
-// 🆕 Import the two new Citizen pages
-import NewTicket from './pages/NewTicket'
-import TrackTicket from './pages/TrackTicket'
+// 🆕 Citizen ticket pages
+import NewTicket from "./pages/NewTicket";
+import TrackTicket from "./pages/TrackTicket";
 
 const App: React.FC = () => {
   const hideLeftNav = location.pathname === "/"; // hide left nav on public home
@@ -56,7 +55,7 @@ const App: React.FC = () => {
             }
           />
 
-          {/* Inspector and Manager views */}
+          {/* Inspector view */}
           <Route
             path="/inspector"
             element={
@@ -65,6 +64,8 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
+
+          {/* Manager / Admin views */}
           <Route
             path="/manager"
             element={
@@ -87,7 +88,7 @@ const App: React.FC = () => {
         </Routes>
       </main>
     </div>
-  )
-}
+  );
+};
 
-export default App
+export default App;

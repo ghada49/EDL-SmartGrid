@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Dict, Tuple
 
 from fastapi import (
     APIRouter,
@@ -10,11 +10,11 @@ from fastapi import (
     File,
     Form,
 )
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from ..db import get_db
 from ..deps import require_roles
-from ..models import ops as models
+from ..models import ops as models, Inspector, Appointment
 from ..models.user import User
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
@@ -71,6 +71,23 @@ def list_cases(
 
     cases = q.order_by(models.Case.created_at.desc()).all()
 
+    case_ids = [c.id for c in cases]
+    latest_assignees: Dict[int, Tuple[Optional[int], Optional[str]]] = {}
+    if case_ids:
+        appts = (
+            db.query(Appointment.case_id, Appointment.inspector_id, Inspector.name)
+            .outerjoin(Inspector, Appointment.inspector_id == Inspector.id)
+            .filter(Appointment.case_id.in_(case_ids))
+            .order_by(Appointment.start_time.desc())
+            .all()
+        )
+        for cid, iid, iname in appts:
+            if cid in latest_assignees:
+                continue
+            if iid is None:
+                continue
+            latest_assignees[cid] = (iid, iname or f"Inspector #{iid}")
+
     # simple serialized view (frontend can refine)
     # Attach inspector display name if available
     def inspector_name(uid: Optional[str]) -> Optional[str]:
@@ -87,7 +104,10 @@ def list_cases(
             "building_id": c.building_id,
             "district": c.building.district if c.building else None,
             "assigned_inspector_id": c.assigned_inspector_id,
-            "inspector_name": inspector_name(c.assigned_inspector_id),
+            "scheduled_inspector_id": latest_assignees.get(c.id, (None, None))[0],
+            "scheduled_inspector_name": latest_assignees.get(c.id, (None, None))[1],
+            "inspector_name": inspector_name(c.assigned_inspector_id)
+            or latest_assignees.get(c.id, (None, None))[1],
             "created_at": c.created_at,
         }
         for c in cases
@@ -168,10 +188,34 @@ def get_case_detail(case_id: int, db: Session = Depends(get_db)):
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
+    latest_appt = (
+        db.query(Appointment)
+        .options(joinedload(Appointment.inspector))
+        .filter(Appointment.case_id == case_id)
+        .order_by(Appointment.start_time.desc())
+        .first()
+    )
+
+    def inspector_name(uid: Optional[str]) -> Optional[str]:
+        if not uid:
+            return None
+        u = db.query(User).filter(User.id == uid).first()
+        return (u.full_name or u.email) if u else None
+
+    assigned_name = inspector_name(case.assigned_inspector_id)
+    scheduled_id = latest_appt.inspector_id if latest_appt else None
+    scheduled_name = (
+        latest_appt.inspector.name if latest_appt and latest_appt.inspector else None
+    )
+
     return {
         "id": case.id,
         "status": case.status,
         "outcome": case.outcome,
+        "assigned_inspector_id": case.assigned_inspector_id,
+        "inspector_name": assigned_name or scheduled_name,
+        "scheduled_inspector_id": scheduled_id,
+        "scheduled_inspector_name": scheduled_name,
         "building": {
             "id": case.building.id if case.building else None,
             "name": case.building.building_name if case.building else None,

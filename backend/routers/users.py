@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..deps import get_current_user, require_roles
 from ..models.user import User
+from ..models import Inspector
 from ..schemas.auth import UserOut
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -29,6 +30,27 @@ class ProfileUpdateIn(BaseModel):
 def _count_admins(db: Session) -> int:
     return db.query(User).filter(User.role == "Admin", User.is_active == True).count()
 
+def ensure_inspector_profile(db: Session, user: User, active: bool = True) -> None:
+    """
+    Create or update the Inspector profile that backs scheduling.
+    Ensures managers immediately see the inspector in dropdowns.
+    """
+    profile = db.query(Inspector).filter(Inspector.user_id == user.id).first()
+    display_name = user.full_name or user.email or f"Inspector {user.id[:8]}"
+
+    if active:
+        if profile:
+            profile.active = True
+            profile.name = display_name
+        else:
+            profile = Inspector(name=display_name, active=True, user_id=user.id)
+            db.add(profile)
+    else:
+        if profile:
+            profile.active = False
+
+    if profile:
+        db.add(profile)
 
 # ---------- Routes ----------
 @router.get("/me", response_model=UserOut)
@@ -74,6 +96,7 @@ def update_role(
         raise HTTPException(status_code=404, detail="User not found")
 
     new_role = payload.role
+    old_role = target.role
 
     # no self-role change
     if actor.id == target.id:
@@ -94,6 +117,12 @@ def update_role(
 
     target.role = new_role
     db.add(target)
+
+    if new_role == "Inspector":
+        ensure_inspector_profile(db, target, active=True)
+    elif old_role == "Inspector" and new_role != "Inspector":
+        ensure_inspector_profile(db, target, active=False)
+
     db.commit()
     db.refresh(target)
     return target

@@ -1,6 +1,8 @@
+# backend/models/ops.py
 from __future__ import annotations
 
 from datetime import datetime
+
 from sqlalchemy import (
     Column,
     Integer,
@@ -12,9 +14,9 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 from ..db import Base
-from sqlalchemy.sql import func
 
 
 # ---------- Buildings ----------
@@ -41,10 +43,15 @@ class Ticket(Base):
     __tablename__ = "tickets"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    # Match users.id which is a String (UUID)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+
     subject = Column(String, nullable=False)
     description = Column(String, nullable=True)
+
+    # you can use "New" or "open" depending on how the frontend expects it
     status = Column(String, default="New")
+
     photo_path = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -73,16 +80,22 @@ class Case(Base):
     building_id = Column(Integer, ForeignKey("buildings.id"), nullable=True)
     anomaly_id = Column(Integer, nullable=True)  # optional link to anomaly/table row
 
-    created_by = Column(String, nullable=True)  # username or id of creator (Manager/Admin)
+    # Who created the case (manager/admin username or id)
+    created_by = Column(String, nullable=True)
+
     # Match users.id which is a String (UUID)
     assigned_inspector_id = Column(String, ForeignKey("users.id"), nullable=True)
 
     # New → Scheduled → Visited → Reported → Closed
+    # (also works fine if some old code uses "open"/"investigating"/"closed")
     status = Column(String, default="New")
 
-    # Fraud / No Issue / Recheck / None
-    outcome = Column(String, nullable=True)
+    # For simple outcomes / new KPI logic
+    outcome = Column(String, nullable=True)        # e.g. "Fraud", "No Issue", "Recheck"
+    final_outcome = Column(String, nullable=True)  # e.g. "fraud" | "non_fraud" | None
 
+    # For reports / KPIs
+    opened_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(
         DateTime,
@@ -90,19 +103,39 @@ class Case(Base):
         onupdate=datetime.utcnow,
     )
 
+    notes = Column(String, nullable=True)
+
+    # Relationships
     building = relationship("Building", back_populates="cases")
+
+    # from “old” ops.py (scheduling / feedback)
+    appointments = relationship(
+        "Appointment",
+        back_populates="case",
+        cascade="all, delete-orphan",
+    )
+
+    feedback_labels = relationship(
+        "FeedbackLabel",
+        back_populates="case",
+        cascade="all, delete-orphan",
+    )
+
+    # from “new” case-management branch
     activities = relationship(
         "CaseActivity",
         back_populates="case",
         cascade="all, delete-orphan",
         order_by="CaseActivity.created_at",
     )
+
     reports = relationship(
         "InspectionReport",
         back_populates="case",
         cascade="all, delete-orphan",
         order_by="InspectionReport.created_at",
     )
+
     attachments = relationship(
         "CaseAttachment",
         back_populates="case",
@@ -138,7 +171,9 @@ class InspectionReport(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     case_id = Column(Integer, ForeignKey("cases.id"), nullable=False)
-    inspector_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    # Match users.id type (String UUID)
+    inspector_id = Column(String, ForeignKey("users.id"), nullable=True)
 
     findings = Column(Text, nullable=True)
     recommendation = Column(Text, nullable=True)

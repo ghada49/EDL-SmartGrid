@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTranslation } from 'react-i18next'
-
+<Link to="/manager/scheduling" className="btn-link">Scheduling</Link>
 const LeftNav: React.FC = () => {
   const { role } = useAuth()
   const { t } = useTranslation()
