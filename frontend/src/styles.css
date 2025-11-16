@@ -23,13 +23,11 @@
   box-sizing: border-box;
 }
 
-/* App body: fixed green gradient background for landing/auth.
-   Content pages (.ms-home, .citizen-wrapper, .eco-page) override it. */
+/* App body: white background - content pages (.ms-home, .citizen-wrapper, .eco-page) set their own backgrounds. */
 body {
   margin: 0;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  background: linear-gradient(180deg, #1e6630 0%, #2f7d35 50%, #3f9142 100%);
-  background-attachment: fixed;
+  background: #ffffff;
   color: var(--text-light);
 }
 
@@ -452,7 +450,7 @@ body {
 
 /* Main app container (Inspector / Manager / Citizen) */
 .ms-home {
-  background: radial-gradient(circle at top left, #f7fff5 0, #e6f6e6 45%, #dbeedb 100%);
+  background: #ffffff;
   min-height: 100vh;
 }
 
@@ -760,6 +758,7 @@ body {
 .eco-page {
   background: linear-gradient(180deg, #e8f5e9 0%, #d9efdb 80%, #c8e6c9 100%);
   color: #1b5e20;
+  min-height: 100vh;
 }
 
 .eco-hero {
