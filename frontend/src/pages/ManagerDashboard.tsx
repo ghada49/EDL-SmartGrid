@@ -149,10 +149,8 @@ const ManagerDashboard: React.FC = () => {
   >("Overview");
 
   return (
-    <div className="ms-home">
-
-      <div className="page-shell">
-        <div className="eco-page">
+  <div className="ms-home eco-page">
+    <div className="page-shell">
           <header className="eco-hero">
             <h1 className="eco-title">Manager Console</h1>
             <p className="eco-sub">
@@ -385,7 +383,7 @@ const ManagerDashboard: React.FC = () => {
                       )}
                       {canTouchInspectorCycle(u) && u.role === "Inspector" && (
                         <button
-                          className="btn-outline sm"
+                          className="btn-eco sm"
                           disabled={busy === u.id}
                           onClick={() => demoteToCitizen(u)}
                         >
@@ -776,7 +774,6 @@ const ManagerDashboard: React.FC = () => {
           )}
         </div>
       </div>
-    </div>
   );
 };
 

@@ -1117,3 +1117,56 @@ body {
 body > header:first-of-type {
   display: none;
 }
+
+.eco-alert-error {
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  color: #fff;
+  background: rgba(232, 76, 61, 0.25);
+  border: 1px solid rgba(232, 76, 61, 0.45);
+  border-radius: 12px;
+}
+/* Main app container (Inspector / Manager / Citizen) */
+.ms-home {
+  background: #f3f6fb;      /* very light neutral instead of pure white */
+  min-height: 100vh;
+}
+
+/* =========================
+   Manager / Inspector / Admin eco layout
+   ========================= */
+.eco-page {
+  min-height: 100vh;
+  /* subtle, airy background instead of strong green gradient */
+  background:
+    radial-gradient(900px 500px at 0% 0%, rgba(76, 175, 80, 0.08), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(46, 125, 50, 0.06), transparent 60%),
+    #f6fbf8;  /* base */
+  color: #1b5e20;
+  padding-bottom: 40px;
+}
+
+/* Hero card – make it look like a centered white panel */
+.eco-hero {
+  text-align: center;
+  margin: 0 auto 2rem;
+  max-width: 820px;
+  padding: 2.5rem 2rem;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(165, 214, 167, 0.6);
+}
+
+.eco-title {
+  font-size: 2.4rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem;
+  color: #104c25;
+}
+
+.eco-sub {
+  color: #3d6648;
+  font-size: 1rem;
+  margin: 0;
+}

@@ -31,19 +31,10 @@ const Login: React.FC = () => {
           <p className="auth-sub">Log in to continue.</p>
 
           {showError && (
-            <div
-              className="eco-card"
-              style={{
-                marginBottom: '0.75rem',
-                padding: '.6rem .8rem',
-                color: '#fff',
-                background: 'rgba(232, 76, 61,.25)',
-                borderColor: 'rgba(232, 76, 61,.45)',
-              }}
-            >
-              {showError}
-            </div>
-          )}
+          <div className="eco-alert-error">
+            {showError}
+          </div>
+        )}
 
           {/* Email */}
           <div className="auth-field">

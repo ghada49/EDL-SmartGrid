@@ -33,6 +33,7 @@ const AdminDashboard: React.FC = () => {
   // ───── User Management ─────
   const [users, setUsers] = useState<UserRow[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  const [userSearch, setUserSearch] = useState("");
 
   const loadUsers = async () => {
     try {
@@ -53,6 +54,8 @@ const AdminDashboard: React.FC = () => {
 
   const canAdminMakeManager = (u: UserRow) =>
     myRole === "Admin" && u.role === "Citizen";
+  const canDemote = (u: UserRow) =>
+    myRole === "Admin" && (u.role === "Inspector" ||u.role === "Manager");
 
   const promoteToInspector = async (u: UserRow) => {
     if (busy) return;
@@ -102,16 +105,26 @@ const AdminDashboard: React.FC = () => {
     return <div>Loading...</div>;
   }
 
-  return (
-    <div className="ms-home">
+  // ───── Filtered users based on search ─────
+  const filteredUsers = users.filter((u) => {
+    if (!userSearch.trim()) return true;
+    const q = userSearch.toLowerCase();
+    const name = (u.full_name || "").toLowerCase();
+    const email = (u.email || "").toLowerCase();
+    return name.includes(q) || email.includes(q);
+  });
 
-      <div className="page-shell">
-        <div className="eco-page">
+  return (
+  <div className="ms-home eco-page">
+    <div className="page-shell">
+      {/* content (header, tabs, sections...) */}
+
           {/* ── Hero header (same style as Manager) ── */}
           <header className="eco-hero">
             <h1 className="eco-title">Admin Console</h1>
             <p className="eco-sub">
-              Govern users, datasets, thresholds, and audit trail for the fraud detection system.
+              Govern users, datasets, thresholds, and audit trail for the fraud
+              detection system.
             </p>
           </header>
 
@@ -152,8 +165,8 @@ const AdminDashboard: React.FC = () => {
                     <h3>System Overview</h3>
                   </div>
                   <p className="eco-muted">
-                    High-level view of platform usage and data governance. Use the tabs above to
-                    jump to users, datasets, or audit trail.
+                    High-level view of platform usage and data governance. Use
+                    the tabs above to jump to users, datasets, or audit trail.
                   </p>
                 </>
               )}
@@ -164,6 +177,21 @@ const AdminDashboard: React.FC = () => {
                     <h3>
                       <FaShieldAlt className="eco-icon-sm" /> User Management
                     </h3>
+
+                    {/* 🔍 Search box */}
+                    <input
+                      type="text"
+                      placeholder="Search by name or email"
+                      value={userSearch}
+                      onChange={(e) => setUserSearch(e.target.value)}
+                      style={{
+                        marginLeft: "auto",
+                        padding: "0.3rem 0.6rem",
+                        borderRadius: 8,
+                        border: "1px solid #a5d6a7",
+                        fontSize: "0.9rem",
+                      }}
+                    />
                   </div>
 
                   <div className="eco-table compact">
@@ -174,30 +202,32 @@ const AdminDashboard: React.FC = () => {
                       <span>Actions</span>
                     </div>
 
-                    {users.map((u) => (
+                    {filteredUsers.map((u) => (
                       <div className="eco-row" key={u.id}>
                         <span>{u.full_name || "—"}</span>
                         <span>{u.email}</span>
                         <span>{u.role}</span>
                         <span className="eco-actions">
-                          {canTouchInspectorCycle(u) && u.role === "Citizen" && (
-                            <button
-                              className="btn-eco sm"
-                              disabled={busy === u.id}
-                              onClick={() => promoteToInspector(u)}
-                            >
-                              Promote to Inspector
-                            </button>
-                          )}
-                          {canTouchInspectorCycle(u) && u.role === "Inspector" && (
-                            <button
-                              className="btn-outline sm"
-                              disabled={busy === u.id}
-                              onClick={() => demoteToCitizen(u)}
-                            >
-                              Demote to Citizen
-                            </button>
-                          )}
+                          {canTouchInspectorCycle(u) &&
+                            u.role === "Citizen" && (
+                              <button
+                                className="btn-eco sm"
+                                disabled={busy === u.id}
+                                onClick={() => promoteToInspector(u)}
+                              >
+                                Promote to Inspector
+                              </button>
+                            )}
+                          {canDemote(u) &&
+                            (u.role === "Inspector"|| u.role === "Manager") && (
+                              <button
+                                className="btn-eco sm"
+                                disabled={busy === u.id}
+                                onClick={() => demoteToCitizen(u)}
+                              >
+                                Demote to Citizen
+                              </button>
+                            )}
                           {canAdminMakeManager(u) && (
                             <button
                               className="btn-eco sm"
@@ -222,8 +252,9 @@ const AdminDashboard: React.FC = () => {
                     </h3>
                   </div>
                   <p className="eco-muted">
-                    Upload CSV/XLSX (schema checked). The system keeps a versioned history and
-                    runs data quality checks and drift detection.
+                    Upload CSV/XLSX (schema checked). The system keeps a
+                    versioned history and runs data quality checks and drift
+                    detection.
                   </p>
 
                   <div
@@ -311,7 +342,10 @@ const AdminDashboard: React.FC = () => {
 
                   {/* Data Quality */}
                   {uploadDQ && (
-                    <div className="eco-table compact" style={{ marginTop: 12 }}>
+                    <div
+                      className="eco-table compact"
+                      style={{ marginTop: 12 }}
+                    >
                       <div className="eco-thead">
                         <span>Column</span>
                         <span>Missingness</span>
@@ -327,7 +361,10 @@ const AdminDashboard: React.FC = () => {
 
                   {/* Drift report */}
                   {drift.length > 0 && (
-                    <div className="eco-table compact" style={{ marginTop: 12 }}>
+                    <div
+                      className="eco-table compact"
+                      style={{ marginTop: 12 }}
+                    >
                       <div className="eco-thead">
                         <span>Column</span>
                         <span>Score</span>
@@ -348,7 +385,10 @@ const AdminDashboard: React.FC = () => {
 
                   {/* History */}
                   {showHistory && history.length > 0 && (
-                    <div className="eco-table compact" style={{ marginTop: 12 }}>
+                    <div
+                      className="eco-table compact"
+                      style={{ marginTop: 12 }}
+                    >
                       <div className="eco-thead">
                         <span>ID</span>
                         <span>Filename</span>
@@ -361,7 +401,9 @@ const AdminDashboard: React.FC = () => {
                           <span>{h.id}</span>
                           <span>{h.filename}</span>
                           <span>{h.rows}</span>
-                          <span>{new Date(h.uploaded_at).toLocaleString()}</span>
+                          <span>
+                            {new Date(h.uploaded_at).toLocaleString()}
+                          </span>
                           <span>{h.status}</span>
                         </div>
                       ))}
@@ -378,8 +420,9 @@ const AdminDashboard: React.FC = () => {
                     </h3>
                   </div>
                   <p className="eco-muted">
-                    Snapshot of recent governance actions. This is a visual placeholder; you can
-                    later hook it to your real audit log API.
+                    Snapshot of recent governance actions. This is a visual
+                    placeholder; you can later hook it to your real audit log
+                    API.
                   </p>
                   <ul className="eco-steps">
                     <li>2025-02-24 — Model v1.2 activated</li>
@@ -395,47 +438,8 @@ const AdminDashboard: React.FC = () => {
               )}
             </div>
 
-            {/* RIGHT COLUMN: Thresholds card (always visible for Admin) */}
-            <div className="eco-card">
-              <div className="eco-card-head">
-                <h3>
-                  <FaSlidersH className="eco-icon-sm" /> Thresholds
-                </h3>
-              </div>
-              <p className="eco-muted">
-                Visual controls for anomaly sensitivity (design only for now; wiring to backend can
-                come later).
-              </p>
-              <div className="eco-slider">
-                <label>
-                  Isolation Forest Threshold <span>0.78</span>
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  defaultValue="0.78"
-                />
-              </div>
-              <div className="eco-slider">
-                <label>
-                  Autoencoder Threshold <span>0.74</span>
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  defaultValue="0.74"
-                />
-              </div>
-              <div className="eco-actions">
-                <button className="btn-eco">Save Thresholds</button>
-              </div>
-            </div>
+           
           </section>
-        </div>
       </div>
     </div>
   );
