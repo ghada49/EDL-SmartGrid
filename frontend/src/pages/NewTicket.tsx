@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import TopNav from "../components/TopNav";
 
 const NewTicket: React.FC = () => {
   const [subject, setSubject] = useState("");
@@ -23,7 +22,7 @@ const NewTicket: React.FC = () => {
       const data = await res.json();
 
       if (res.ok) {
-        setMessage(`✅ Ticket submitted! ID: ${data.ticket_id}`);
+        setMessage(`Ticket submitted! ID: ${data.ticket_id}`);
         setSubject("");
         setDescription("");
         setFile(null);
@@ -31,16 +30,15 @@ const NewTicket: React.FC = () => {
         const detail =
           (data && (data.detail || data.message)) ||
           `Unexpected error (code ${res.status})`;
-        setMessage(`❌ Error: ${detail}`);
+        setMessage(`Error: ${detail}`);
       }
     } catch (err) {
-      setMessage(`❌ Network error: ${err}`);
+      setMessage(`Network error: ${err}`);
     }
   };
 
   return (
     <div className="ms-home">
-      <TopNav />
       <section className="auth-wrapper">
         <div className="auth-card">
           <h2 className="auth-title">Report an Issue</h2>

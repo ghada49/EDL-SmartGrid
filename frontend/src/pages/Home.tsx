@@ -1,6 +1,5 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import TopNav from "../components/TopNav";
 import { FaMapMarkerAlt, FaClipboardList, FaBolt } from 'react-icons/fa'
 
 const Home: React.FC = () => {
@@ -8,7 +7,6 @@ const Home: React.FC = () => {
 
   return (
     <div className="ms-home">
-      <TopNav />
 
       <section className="ms-hero">
         <h1>

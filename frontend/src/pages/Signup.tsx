@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { signupCitizen } from '../api/auth'
-import TopNavPublic from '../components/TopNav'   
 import '../styles.css'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i
@@ -73,7 +72,6 @@ const Signup: React.FC = () => {
   return (
     <>
       {/* 3) show navbar on the page */}
-      <TopNavPublic />
 
       <div className="auth-eco-bg">
         <div className="auth-wrapper">

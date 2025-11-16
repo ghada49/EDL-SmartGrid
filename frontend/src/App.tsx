@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import LeftNav from "./components/LeftNav";
+import TopNav from "./components/TopNav";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -9,20 +9,17 @@ import InspectorRoutes from "./pages/InspectorRoutes";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import MapView from "./pages/MapView";
 import ProtectedRoute from "./routes/ProtectedRoute";
-
+import AdminDashboard from "./pages/AdminDashboard";
 // 🆕 Citizen ticket pages
 import NewTicket from "./pages/NewTicket";
 import TrackTicket from "./pages/TrackTicket";
 
 const App: React.FC = () => {
-  const hideLeftNav = location.pathname === "/"; // hide left nav on public home
-
   return (
     <div className="layout">
-      {/* Hide LeftNav only on the public home page */}
-      {!hideLeftNav && <LeftNav />}
+      <TopNav />
 
-      <main className={`content ${hideLeftNav ? "content--full" : ""}`}>
+      <main className="content">
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Home />} />
@@ -69,15 +66,23 @@ const App: React.FC = () => {
           <Route
             path="/manager"
             element={
-              <ProtectedRoute roles={["Manager", "Admin"]}>
+              <ProtectedRoute roles={["Manager"]}>
                 <ManagerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute roles={["Admin"]}>
+                <AdminDashboard />
               </ProtectedRoute>
             }
           />
           <Route
             path="/map"
             element={
-              <ProtectedRoute roles={["Manager", "Admin"]}>
+              <ProtectedRoute roles={["Manager"]}>
                 <MapView />
               </ProtectedRoute>
             }

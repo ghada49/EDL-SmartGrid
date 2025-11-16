@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import TopNav from "../components/TopNav";
 import { listUsers, updateUserRole, UserRow } from "../api/users";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -151,12 +150,11 @@ const ManagerDashboard: React.FC = () => {
 
   return (
     <div className="ms-home">
-      <TopNav />
 
       <div className="page-shell">
         <div className="eco-page">
           <header className="eco-hero">
-            <h1 className="eco-title">Admin / Manager Console</h1>
+            <h1 className="eco-title">Manager Console</h1>
             <p className="eco-sub">
               Manage users, datasets, models, thresholds, cases and audit logs.
             </p>
@@ -567,63 +565,9 @@ const ManagerDashboard: React.FC = () => {
               </div>
             )}
 
-            {/* ── Thresholds ── */}
-            <div className="eco-card">
-              <div className="eco-card-head">
-                <h3>
-                  <FaSlidersH className="eco-icon-sm" /> Thresholds
-                </h3>
-              </div>
-              <p className="eco-muted">
-                Adjust alert sensitivity for IF/AE &amp; combined rank.
-              </p>
-              <div className="eco-slider">
-                <label>
-                  Isolation Forest Threshold <span>0.78</span>
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  defaultValue="0.78"
-                />
-              </div>
-              <div className="eco-slider">
-                <label>
-                  Autoencoder Threshold <span>0.74</span>
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  defaultValue="0.74"
-                />
-              </div>
-              <div className="eco-actions">
-                <button className="btn-eco">Save Thresholds</button>
-              </div>
-            </div>
+           
 
-            {/* ── Bias & Audit ── */}
-            <div className="eco-card" style={{ gridColumn: "2" }}>
-              <div className="eco-card-head">
-                <h3>
-                  <FaBalanceScale className="eco-icon-sm" /> Bias &amp; Audit
-                </h3>
-              </div>
-              <ul className="eco-steps">
-                <li>2025-02-24 — Model v1.2 activated</li>
-                <li>2025-02-10 — IF threshold changed (0.75 → 0.78)</li>
-                <li>2025-01-23 — Case #921 status: Visited → Closed</li>
-              </ul>
-              <div className="eco-actions">
-                <button className="btn-outline">
-                  <FaShieldAlt /> View Full Audit
-                </button>
-              </div>
-            </div>
+
           </section>
 
           {/* Case Detail Modal overlay */}

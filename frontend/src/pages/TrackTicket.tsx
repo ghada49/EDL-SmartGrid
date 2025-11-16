@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import TopNav from "../components/TopNav";
 
 const TrackTicket: React.FC = () => {
   const [ticketId, setTicketId] = useState("");
@@ -45,20 +44,19 @@ const TrackTicket: React.FC = () => {
         throw new Error(detail);
       }
 
-      setMessage({ type: "success", text: "✅ Follow-up added successfully!" });
+      setMessage({ type: "success", text: "Follow-up added successfully!" });
       setNote("");
     } catch (err: any) {
       const errMsg =
         typeof err.message === "object"
           ? JSON.stringify(err.message)
           : err.message;
-      setMessage({ type: "error", text: `❌ ${errMsg}` });
+      setMessage({ type: "error", text: `${errMsg}` });
     }
   };
 
   return (
     <div className="ms-home">
-      <TopNav />
       <section className="auth-wrapper">
         <div className="auth-card">
           <h2 className="auth-title">Track Ticket</h2>

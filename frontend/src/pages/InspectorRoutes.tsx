@@ -1,7 +1,6 @@
 // frontend/src/pages/InspectorRoutes.tsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import TopNav from "../components/TopNav";
 import { useAuth } from "../context/AuthContext";
 import {
   FaMapMarkedAlt,
@@ -661,7 +660,6 @@ const InspectorRoutes: React.FC = () => {
 
   return (
     <div className="eco-page">
-      <TopNav />
 
       <header className="eco-hero">
         <h1 className="eco-title">Inspector Console</h1>

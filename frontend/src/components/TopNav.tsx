@@ -9,14 +9,15 @@ const TopNav: React.FC = () => {
   const dashboardPath =
     role === "Citizen" ? "/citizen" :
     role === "Inspector" ? "/inspector" :
-    role === "Manager" || role === "Admin" ? "/manager" :
+    role === "Manager" ? "/manager" :
+    role === "Admin" ? "/admin" :
     "/";
 
   return (
     <header className="ms-nav">
-      <div className="ms-nav__brand" style={{ cursor: "pointer" }} onClick={() => nav("/")}>
+      <div className="ms-nav__brand" style={{ cursor: "pointer" }}>
         <span className="ms-dot" />
-        <span>Beirut Municipal Energy</span>
+        <span>EDL SmartGrid Portal</span>
       </div>
 
       <nav className="ms-nav__links">

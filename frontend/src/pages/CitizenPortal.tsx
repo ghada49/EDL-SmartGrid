@@ -1,12 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import TopNav from "../components/TopNav";
 import { FaMapMarkerAlt, FaClipboardList, FaBolt } from "react-icons/fa";
 
 const CitizenPortal: React.FC = () => {
   return (
     <div className="ms-home">
-      <TopNav />
 
       {/* Optional small hero for context */}
       <section className="ms-hero" style={{ marginTop: 28 }}>

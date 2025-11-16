@@ -28,7 +28,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const redirectByRole = (r: Role) => {
     if (r === 'Citizen') navigate('/citizen')
     else if (r === 'Inspector') navigate('/inspector')
-    else if (r === 'Manager' || r === 'Admin') navigate('/manager')
+    else if (r === 'Manager') navigate('/manager')
+    else if (r === 'Admin') navigate('/admin')
   }
 
   useEffect(() => {
