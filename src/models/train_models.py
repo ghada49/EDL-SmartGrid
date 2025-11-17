@@ -355,7 +355,7 @@ def run_pipeline(args):
         X_model = pca.fit_transform(X_scaled)
         pca_model = pca
         if not args.quiet:
-            print(f"PCA reduced dim: {X_scaled.shape[1]} → {X_model.shape[1]} (95% var)")
+            print(f"PCA reduced dim: {X_scaled.shape[1]} -> {X_model.shape[1]} (95% var)")
     else:
         # Optionally use FactorAnalysis as a probabilistic PCA-like model
         if args.use_fa:
@@ -363,7 +363,7 @@ def run_pipeline(args):
             X_model = fa.fit_transform(X_scaled)
             pca_model = None
             if not args.quiet:
-                print(f"FA reduced dim: {X_scaled.shape[1]} → {X_model.shape[1]}")
+                print(f"FA reduced dim: {X_scaled.shape[1]} -> {X_model.shape[1]}")
         else:
             X_model = X_scaled
             pca_model = None
@@ -451,7 +451,7 @@ def run_pipeline(args):
     evals["FUSED"] = evaluate_partition(X_model, lab_fused)
 
     if not args.quiet:
-        print("\n=== Unsupervised Evaluation (↑Silhouette/↑Dunn/↓DBI) ===")
+        print("\n=== Unsupervised Evaluation (Silhouette/Dunn/DBI) ===")
         for name in sorted(evals.keys()):
             print(f"{name:<9}: {fmt(evals[name])}")
 
@@ -598,12 +598,32 @@ def run_pipeline(args):
 
     if not args.quiet:
         sr = stability_report
-        print(f"Bootstrap ρ: {sr['bootstrap']['spearman_rho_mean']:.3f} ± {sr['bootstrap']['spearman_rho_std']:.3f}")
-        print(f"Jaccard@k : {sr['bootstrap']['jaccard_at_k_mean']:.3f} ± {sr['bootstrap']['jaccard_at_k_std']:.3f}")
-        print(f"ARI       : {sr['bootstrap']['ari_mean']:.3f} ± {sr['bootstrap']['ari_std']:.3f}")
-        print(f"Metric σ  : Sil={sr['bootstrap']['silhouette_std']:.3f} | Dunn={sr['bootstrap']['dunn_std']:.3f} | DBI={sr['bootstrap']['dbi_std']:.3f}")
-        print(f"Seeds ρ   : {sr['seed_sensitivity']['spearman_rho_mean']:.3f} ± {sr['seed_sensitivity']['spearman_rho_std']:.3f}")
-        print(f"Noise ρ   : {sr['noise_robustness']['spearman_rho_mean']:.3f} ± {sr['noise_robustness']['spearman_rho_std']:.3f}")
+        print(
+            "Bootstrap rho: "
+            f"{sr['bootstrap']['spearman_rho_mean']:.3f} +/- {sr['bootstrap']['spearman_rho_std']:.3f}"
+        )
+        print(
+            "Jaccard@k: "
+            f"{sr['bootstrap']['jaccard_at_k_mean']:.3f} +/- {sr['bootstrap']['jaccard_at_k_std']:.3f}"
+        )
+        print(
+            "ARI: "
+            f"{sr['bootstrap']['ari_mean']:.3f} +/- {sr['bootstrap']['ari_std']:.3f}"
+        )
+        print(
+            "Metric std: "
+            f"Sil={sr['bootstrap']['silhouette_std']:.3f} | "
+            f"Dunn={sr['bootstrap']['dunn_std']:.3f} | "
+            f"DBI={sr['bootstrap']['dbi_std']:.3f}"
+        )
+        print(
+            "Seeds rho: "
+            f"{sr['seed_sensitivity']['spearman_rho_mean']:.3f} +/- {sr['seed_sensitivity']['spearman_rho_std']:.3f}"
+        )
+        print(
+            "Noise rho: "
+            f"{sr['noise_robustness']['spearman_rho_mean']:.3f} +/- {sr['noise_robustness']['spearman_rho_std']:.3f}"
+        )
 
     # ---------- Threshold sweep (console) ----------
     if args.sweep_thresholds and not args.quiet:
@@ -617,7 +637,7 @@ def run_pipeline(args):
             for pct in percent_list:
                 thr = np.percentile(vals, 100 - pct)
                 flagged_pct = (vals >= thr).mean() * 100.0
-                print(f"  {pct:>2}% cutoff → flags ≈ {flagged_pct:5.1f}% (thr={thr:.6f})")
+                print(f"  {pct:>2}% cutoff -> flags ≈ {flagged_pct:5.1f}% (thr={thr:.6f})")
 
     # ---------- Save outputs ----------
     if not args.skip_save:

@@ -25,7 +25,13 @@ def start_training(
     Enqueue a training job with the selected tuner mode.
     mode is taken from the query string: /ops/train?mode=fast|moderate|slow|very_slow
     """
-    job = train_queue.enqueue(run_full_training_pipeline, mode)
+    # backend/routers/ops_train.py
+    job = train_queue.enqueue(
+        run_full_training_pipeline,
+        mode,
+        job_timeout=86500,  # 1 day, adjust as needed
+    )
+
     return {"job_id": job.id, "status": "queued", "mode": mode}
 
 

@@ -122,7 +122,7 @@ class FeatureEngineering:
         if changes:
             print("\n[FIX] Skewness fixes applied (kept only if improved):")
             for col, old_s, new_s, how in changes:
-                print(f"  • {col}: skew {old_s:.3f} -> {new_s:.3f} via {how}")
+                print(f"  {col}: skew {old_s:.3f} -> {new_s:.3f} via {how}")
         else:
             print("\n[INFO] No skewness transforms improved columns (or none exceeded threshold).")
 
