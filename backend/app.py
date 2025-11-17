@@ -15,7 +15,7 @@ from .routers import inspections as inspections_router
 from .routers import reports as reports_router
 from .routers import ml_buildings as ml_router
 from .routers import data_ops as ops_router
-
+from .routers import ops_train as ops_train_router
 # Extra routers (tickets, scheduling, feedback, inspector)
 from .routers import tickets
 from .routers import tickets_admin
@@ -56,7 +56,7 @@ def create_app() -> FastAPI:
 
     # ML endpoints (no prefix for maximum compatibility with existing frontend)
     app.include_router(ml_router.router)
-
+    app.include_router(ops_train_router.router) 
     # Data ops / backoffice
     app.include_router(ops_router.router)
 

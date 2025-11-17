@@ -26,7 +26,7 @@ class DataLoader:
         else:
             raise ValueError("Unsupported file format. Please use CSV or Excel.")
 
-        print(f"✅ Data loaded successfully from {self.file_path}")
+        print(f"[OK] Data loaded successfully from {self.file_path}")
         return self.df
 
     # -------------------------------
@@ -34,16 +34,16 @@ class DataLoader:
     # -------------------------------
     def explore_data(self):
         """Displays information, basic stats, and first few rows."""
-        print("\n📊 Data Overview:")
+        print("\n[DATA] Data Overview:")
         print(self.df.info())
 
-        print("\n🔍 First 5 Rows:")
+        print("\n[INFO] First 5 Rows:")
         print(self.df.head())
 
-        print("\n📈 Summary Statistics (Numerical Columns):")
+        print("\n[STATS] Summary Statistics (Numerical Columns):")
         print(self.df.describe())
 
-        print("\n📏 Columns:")
+        print("\n[COLS] Columns:")
         print(list(self.df.columns))
 
     # -------------------------------
@@ -64,14 +64,14 @@ class DataLoader:
             if self.df[col].isnull().any():
                 self.df[col].fillna(self.df[col].mode()[0], inplace=True)
 
-        print("\n✅ Missing values handled (numeric → median, categorical → mode).")
+        print("\n[OK] Missing values handled (numeric -> median, categorical -> mode).")
         return self.df
 
     def report_duplicates(self):
         """Reports number of duplicate rows (does not remove them)."""
         duplicates = self.df.duplicated().sum()
         print(f"\n🧹 Number of duplicate rows in dataset: {duplicates}")
-        print(f"📏 Total rows (including duplicates): {len(self.df)}")
+        print(f"[COLS] Total rows (including duplicates): {len(self.df)}")
         return duplicates
 
     # -------------------------------
@@ -81,19 +81,19 @@ class DataLoader:
         """Detects outliers using Z-score for all numeric columns."""
         numeric_cols = self.df.select_dtypes(include=[np.number]).columns
         if len(numeric_cols) == 0:
-            print("\n⚠️ No numeric columns to apply Z-score.")
+            print("\n[WARN] No numeric columns to apply Z-score.")
             return pd.DataFrame()
 
         z_scores = np.abs(zscore(self.df[numeric_cols]))
         outliers = self.df[(z_scores > threshold).any(axis=1)]
-        print(f"\n⚠️ Outliers detected using Z-score (|Z| > {threshold}): {len(outliers)} rows")
+        print(f"\n[WARN] Outliers detected using Z-score (|Z| > {threshold}): {len(outliers)} rows")
         return outliers
 
     def detect_outliers_iqr(self):
         """Detects outliers using IQR for all numeric columns."""
         numeric_cols = self.df.select_dtypes(include=[np.number]).columns
         if len(numeric_cols) == 0:
-            print("\n⚠️ No numeric columns to apply IQR method.")
+            print("\n[WARN] No numeric columns to apply IQR method.")
             return pd.DataFrame()
 
         outlier_indices = set()
@@ -105,7 +105,7 @@ class DataLoader:
             outlier_indices.update(self.df[mask].index)
 
         outliers = self.df.loc[list(outlier_indices)]
-        print(f"\n⚠️ Outliers detected using IQR: {len(outliers)} rows")
+        print(f"\n[WARN] Outliers detected using IQR: {len(outliers)} rows")
         return outliers
 
     # -------------------------------
@@ -115,10 +115,10 @@ class DataLoader:
         """Computes skewness for numeric features."""
         numeric_cols = self.df.select_dtypes(include=[np.number]).columns
         if len(numeric_cols) == 0:
-            print("\n⚠️ No numeric columns to compute skewness.")
+            print("\n[WARN] No numeric columns to compute skewness.")
             return pd.Series()
         skewness = self.df[numeric_cols].skew()
-        print("\n📊 Skewness for each numerical column:\n", skewness)
+        print("\n[DATA] Skewness for each numerical column:\n", skewness)
         return skewness
 
     def correlation_matrix(self):
@@ -146,91 +146,3 @@ if __name__ == "__main__":
     loader.report_duplicates()
     loader.check_skewness()
     loader.correlation_matrix()
-
-'''
-Output for raw data when running this script:
-✅ Data loaded successfully from c:\Users\HP\EECE-490-Project\data\raw\data.xlsx
-
-📊 Data Overview:
-<class 'pandas.core.frame.DataFrame'>
-RangeIndex: 1761 entries, 0 to 1760
-Data columns (total 8 columns):
- #   Column                               Non-Null Count  Dtype  
----  ------                               --------------  -----  
- 0   FID                                  1761 non-null   int64  
- 1   Building Construction Year           1761 non-null   int64  
- 2   Number of floors                     1761 non-null   int64  
- 3   Number of Apartments                 1761 non-null   int64  
- 4   Total Electricity Consumption (kwH)  1761 non-null   float64
- 5   Latitude                             1761 non-null   float64
- 6   Longitude                            1761 non-null   float64
- 7   Area in m^2                          1761 non-null   float64
-dtypes: float64(4), int64(4)
-memory usage: 110.2 KB
-None
-
-🔍 First 5 Rows:
-   FID  Building Construction Year  ...  Longitude  Area in m^2
-0    0                        1936  ...  33.892128   149.034627       
-1    1                        1930  ...  33.894906   254.431544       
-2    2                        1930  ...  33.894987   254.067839       
-3    3                        1920  ...  33.891896    65.391169       
-4    4                        1970  ...  33.889256   147.933395       
-
-[5 rows x 8 columns]
-
-📈 Summary Statistics (Numerical Columns):
-               FID  ...  Area in m^2
-count  1761.000000  ...  1761.000000
-mean    880.000000  ...   212.949974
-std     508.501229  ...   132.954190
-min       0.000000  ...    28.112263
-25%     440.000000  ...   120.466146
-50%     880.000000  ...   185.273596
-75%    1320.000000  ...   274.177729
-max    1760.000000  ...  1180.263390
-
-[8 rows x 8 columns]
-
-📏 Columns:
-['FID', 'Building Construction Year', 'Number of floors', 'Number of Apartments', 'Total Electricity Consumption (kwH)', 'Latitude', 'Longitude', 'Area in m^2']
-
-🧩 Missing Values per Column:
-FID                                    0
-Building Construction Year             0
-Number of floors                       0
-Number of Apartments                   0
-Total Electricity Consumption (kwH)    0
-Latitude                               0
-Longitude                              0
-Area in m^2                            0
-dtype: int64
-
-✅ Missing values handled (numeric → median, categorical → mode).
-
-🧹 Number of duplicate rows in dataset: 0
-📏 Total rows (including duplicates): 1761
-
-📊 Skewness for each numerical column:
- FID                                    0.000000
-Building Construction Year            -8.790279
-Number of floors                       1.543842
-Number of Apartments                   7.025745
-Total Electricity Consumption (kwH)    5.699579
-Latitude                              -1.224980
-Longitude                             -0.635503
-Area in m^2                            1.823400
-dtype: float64
-
-🔗 Correlation Matrix:
-                                           FID  ...  Area in m^2
-FID                                  1.000000  ...    -0.038191
-Building Construction Year          -0.146239  ...     0.277329
-Number of floors                    -0.170448  ...     0.432800
-Number of Apartments                -0.157525  ...     0.388391
-Total Electricity Consumption (kwH) -0.032261  ...     0.350627
-Latitude                             0.345641  ...    -0.358696
-Longitude                           -0.091837  ...     0.009076
-Area in m^2                         -0.038191  ...     1.000000
-
-'''

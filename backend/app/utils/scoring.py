@@ -22,11 +22,11 @@ if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH) and tf is not None
     try:
         ae_model = tf.keras.models.load_model(MODEL_PATH)
         scaler = joblib.load(SCALER_PATH)
-        print("✅ Autoencoder and scaler loaded successfully.")
+        print("[OK] Autoencoder and scaler loaded successfully.")
     except Exception as e:
-        print("⚠️  Error loading model/scaler:", e)
+        print("[WARN] Error loading model/scaler:", e)
 else:
-    print("⚠️  Autoencoder or scaler not found. Using dummy mode.")
+    print("[WARN] Autoencoder or scaler not found. Using dummy mode.")
 
 # ------------------------------------------------------------------
 # Fraud scoring function

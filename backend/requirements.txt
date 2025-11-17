@@ -16,3 +16,9 @@ numpy
 joblib
 reportlab
 openpyxl
+redis
+rq
+scikit-learn
+scipy
+hdbscan
+tensorflow>=2.10 
