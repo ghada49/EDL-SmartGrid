@@ -87,7 +87,7 @@ class Case(Base):
     # Match users.id which is a String (UUID)
     assigned_inspector_id = Column(String, ForeignKey("users.id"), nullable=True)
 
-    # New → Scheduled → Visited → Reported → Closed
+    # New → Scheduled → Reported
     # (also works fine if some old code uses "open"/"investigating"/"closed")
     status = Column(String, default="New")
 

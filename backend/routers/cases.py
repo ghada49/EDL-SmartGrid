@@ -129,16 +129,37 @@ def assign_case(
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
+    previous_status = case.status
     case.assigned_inspector_id = inspector_id
+
+    status_changed = False
+    if previous_status == "New":
+        case.status = "Scheduled"
+        status_changed = True
+    db.add(case)
+
+    inspector = db.query(User).filter(User.id == inspector_id).first()
+    inspector_label = (inspector.full_name or inspector.email) if inspector else inspector_id
 
     db.add(
         models.CaseActivity(
             case_id=case.id,
             actor=actor or "manager",
             action="ASSIGN",
-            note=f"Assigned to inspector {inspector_id}",
+            note=f"Assigned to inspector {inspector_label}",
         )
     )
+
+    if status_changed:
+        db.add(
+            models.CaseActivity(
+                case_id=case.id,
+                actor=actor or "system",
+                action="STATUS_UPDATE",
+                note="Status changed to Scheduled",
+            )
+        )
+
     db.commit()
     return {"id": case.id, "assigned_inspector_id": inspector_id}
 
@@ -154,7 +175,7 @@ def update_case_status(
     actor: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
-    if status not in ["New", "Scheduled", "Visited", "Reported", "Closed"]:
+    if status not in ["New", "Scheduled", "Reported"]:
         raise HTTPException(status_code=400, detail="Invalid status")
 
     case = db.query(models.Case).get(case_id)
@@ -377,12 +398,12 @@ def review_inspection_report(
     if decision == "Approve_Fraud":
         report.status = "Approved"
         case.outcome = "Fraud"
-        case.status = "Closed"
+        case.status = "Reported"
         note = "Report approved. Outcome: Fraud."
     elif decision == "Approve_NoIssue":
         report.status = "Approved"
         case.outcome = "No Issue"
-        case.status = "Closed"
+        case.status = "Reported"
         note = "Report approved. Outcome: No Issue."
     elif decision == "Recheck":
         report.status = "Recheck"

@@ -827,7 +827,7 @@ const AdminDashboard: React.FC = () => {
                 <ul className="eco-steps">
                   <li>2025-02-24 — Model v1.2 activated</li>
                   <li>2025-02-10 — IF threshold changed (0.75 → 0.78)</li>
-                  <li>2025-01-23 — Case #921 status: Visited → Closed</li>
+                  <li>2025-01-23 — Case #921 status: New → Scheduled</li>
                 </ul>
                 <div className="eco-actions">
                   <button className="btn-outline">

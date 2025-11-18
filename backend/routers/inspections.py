@@ -75,11 +75,11 @@ def review_report(
     if decision == "Fraud":
         report.status = "Approved"
         case.outcome = "Fraud"
-        case.status = "Closed"
+        case.status = "Reported"
     elif decision == "No Issue":
         report.status = "Approved"
         case.outcome = "No Issue"
-        case.status = "Closed"
+        case.status = "Reported"
     elif decision == "Recheck":
         report.status = "Recheck"
         case.outcome = "Recheck"

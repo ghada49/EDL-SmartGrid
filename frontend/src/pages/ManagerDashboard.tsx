@@ -14,16 +14,15 @@ import { uploadDataset, getDatasetHistory, DQ } from "../api/ops";
 
 import {
   listCases,
-  updateCaseStatus,
   assignInspector,
   decideCase,
   getCaseDetail,
   reviewCase,
   addCaseComment,
-  uploadCaseAttachment,
-  createCase,
   Case,
 } from "../api/cases";
+
+const CASE_STATUSES = ["New", "Scheduled", "Reported"] as const;
 
 const ManagerDashboard: React.FC = () => {
   const { role: myRole } = useAuth();
@@ -91,11 +90,7 @@ const ManagerDashboard: React.FC = () => {
   const [detailId, setDetailId] = useState<number | null>(null);
   const [detail, setDetail] = useState<any | null>(null);
 
-  const [newAnomalyId, setNewAnomalyId] = useState<string>("");
-  const [newCaseNotes, setNewCaseNotes] = useState<string>("");
-
   const [commentNote, setCommentNote] = useState<string>("");
-  const [attachFile, setAttachFile] = useState<File | null>(null);
 
   const loadCases = async () => {
     setLoadingCases(true);
@@ -191,41 +186,6 @@ const ManagerDashboard: React.FC = () => {
                 <h3>Case Management Panel</h3>
               </div>
 
-              {/* CREATE CASE */}
-              <div className="eco-actions" style={{ gap: 8 }}>
-                <input
-                  className="auth-input"
-                  placeholder="Anomaly ID"
-                  value={newAnomalyId}
-                  onChange={(e) => setNewAnomalyId(e.target.value)}
-                />
-                <input
-                  className="auth-input"
-                  placeholder="Notes (optional)"
-                  value={newCaseNotes}
-                  onChange={(e) => setNewCaseNotes(e.target.value)}
-                />
-                <button
-                  className="btn-outline"
-                  onClick={async () => {
-                    try {
-                      await createCase({
-                        anomaly_id: newAnomalyId ? Number(newAnomalyId) : undefined,
-                        notes: newCaseNotes || undefined,
-                        created_by: "manager",
-                      });
-                      setNewAnomalyId("");
-                      setNewCaseNotes("");
-                      await loadCases();
-                    } catch (e: any) {
-                      alert(`Create case failed: ${e?.message}`);
-                    }
-                  }}
-                >
-                  Create Case
-                </button>
-              </div>
-
               {/* FILTERS */}
               <div className="eco-actions" style={{ gap: 8 }}>
                 <select
@@ -234,7 +194,7 @@ const ManagerDashboard: React.FC = () => {
                   onChange={(e) => setFilterStatus(e.target.value)}
                 >
                   <option value="">All Statuses</option>
-                  {["New", "Scheduled", "Visited", "Reported", "Closed"].map((s) => (
+                  {CASE_STATUSES.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
@@ -245,6 +205,7 @@ const ManagerDashboard: React.FC = () => {
                   className="auth-input"
                   value={filterInspector}
                   onChange={(e) => setFilterInspector(e.target.value)}
+                  style={{ marginTop: 8 }}
                 >
                   <option value="">Any Inspector</option>
                   {users
@@ -259,7 +220,7 @@ const ManagerDashboard: React.FC = () => {
                 <button className="btn-outline" onClick={applyCaseFilters}>
                   Apply Filters
                 </button>
-                <button className="btn-eco" onClick={loadCases}>
+                <button className="btn-eco" onClick={loadCases} style={{ marginTop: 8 }}>
                   Reload Cases
                 </button>
               </div>
@@ -286,25 +247,6 @@ const ManagerDashboard: React.FC = () => {
                     >
                       View
                     </button>
-
-                    <select
-                      className="auth-input"
-                      defaultValue=""
-                      onChange={async (e) => {
-                        const v = e.target.value;
-                        if (!v) return;
-                        await updateCaseStatus(c.id, v);
-                        await loadCases();
-                        e.currentTarget.value = "";
-                      }}
-                    >
-                      <option value="">Change Status</option>
-                      {["New", "Scheduled", "Visited", "Reported", "Closed"].map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
 
                     <select
                       className="auth-input"
@@ -343,13 +285,27 @@ const ManagerDashboard: React.FC = () => {
         {detailId && detail && (
           <div className="eco-modal">
             <div className="eco-modal-content">
+              <button
+                className="eco-modal-close"
+                aria-label="Close case details"
+                onClick={() => {
+                  setDetailId(null);
+                  setDetail(null);
+                }}
+              >
+                &times;
+              </button>
               <h3>Case #{detailId}</h3>
 
               <p>Status: {detail.status}</p>
               <p>Outcome: {detail.outcome || "-"}</p>
               <p>
-                Building: {detail.building?.id || "-"} — District:{" "}
-                {detail.building?.district || "-"}
+                Building: {detail.building?.id || "-"}
+                {detail.building?.district ? (
+                  <>
+                    {" - "}District: {detail.building.district}
+                  </>
+                ) : null}
               </p>
 
               <h4>Activities</h4>
@@ -428,23 +384,6 @@ const ManagerDashboard: React.FC = () => {
                 ))}
               </div>
 
-              <h4>Attachments</h4>
-              <div className="eco-table compact">
-                <div className="eco-thead">
-                  <span>ID</span>
-                  <span>File</span>
-                  <span>When</span>
-                </div>
-
-                {detail.attachments.map((at: any) => (
-                  <div className="eco-row" key={at.id}>
-                    <span>{at.id}</span>
-                    <span>{at.filename}</span>
-                    <span>{new Date(at.uploaded_at).toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
-
               {/* COMMENT */}
               <div className="eco-actions" style={{ marginTop: 8 }}>
                 <textarea
@@ -466,37 +405,6 @@ const ManagerDashboard: React.FC = () => {
                 </button>
               </div>
 
-              {/* UPLOAD ATTACHMENT */}
-              <div className="eco-actions" style={{ marginTop: 8 }}>
-                <input
-                  type="file"
-                  className="auth-input"
-                  onChange={(e) => setAttachFile(e.target.files?.[0] || null)}
-                />
-                <button
-                  className="btn-outline sm"
-                  onClick={async () => {
-                    if (!attachFile) return;
-                    await uploadCaseAttachment(detailId, attachFile, "manager");
-                    setAttachFile(null);
-                    setDetail(await getCaseDetail(detailId));
-                  }}
-                >
-                  Upload Attachment
-                </button>
-              </div>
-
-              <div className="eco-actions" style={{ marginTop: 12 }}>
-                <button
-                  className="btn-outline"
-                  onClick={() => {
-                    setDetailId(null);
-                    setDetail(null);
-                  }}
-                >
-                  Close
-                </button>
-              </div>
             </div>
           </div>
         )}

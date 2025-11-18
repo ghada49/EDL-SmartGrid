@@ -115,6 +115,16 @@ const TicketManagementPanel: React.FC = () => {
       {detailId && detail && (
         <div className="eco-modal">
           <div className="eco-modal-content">
+            <button
+              className="eco-modal-close"
+              aria-label="Close ticket details"
+              onClick={() => {
+                setDetailId(null);
+                setDetail(null);
+              }}
+            >
+              &times;
+            </button>
             <h3>Ticket #{detailId}</h3>
             <p>Status: {detail.status}</p>
             <p>Subject: {detail.subject}</p>
@@ -157,17 +167,6 @@ const TicketManagementPanel: React.FC = () => {
               </button>
             </div>
 
-            <div className="eco-actions" style={{ marginTop: 12 }}>
-              <button
-                className="btn-outline"
-                onClick={() => {
-                  setDetailId(null);
-                  setDetail(null);
-                }}
-              >
-                Close
-              </button>
-            </div>
           </div>
         </div>
       )}

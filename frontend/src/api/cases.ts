@@ -49,8 +49,8 @@ export async function updateCaseStatus(caseId: number, newStatus: string, actor?
 
 // Manager approval requires a report_id on backend; this is a simplified fallback
 export async function decideCase(caseId: number, decision: string): Promise<{ id: number; status: string }> {
-  // Fallback: close case; for full approval flow, call /cases/{id}/review with report_id
-  return updateCaseStatus(caseId, 'Closed')
+  // Fallback: mark as Reported; for full approval flow, call /cases/{id}/review with report_id
+  return updateCaseStatus(caseId, 'Reported')
 }
 
 export async function getCaseDetail(caseId: number): Promise<any> {

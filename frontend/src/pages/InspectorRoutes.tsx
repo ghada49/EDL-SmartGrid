@@ -110,6 +110,8 @@ type InspectorProfile = {
 
 type InspectorTab = "calendar" | "route" | "home" | "cases";
 
+const CASE_STATUSES = ["New", "Scheduled", "Reported"] as const;
+
 // ---- date / formatting helpers ----
 
 function isoDay(date = new Date()): string {
@@ -694,7 +696,7 @@ const InspectorRoutes: React.FC = () => {
       ) : (
         <>
           <div className="eco-kpi-strip">
-            {(["New", "Scheduled", "Visited", "Reported", "Closed"] as const).map((st) => (
+            {CASE_STATUSES.map((st) => (
               <div className="eco-kpi glassy" key={st}>
                 <div className="eco-kpi-num">
                   {myCases.filter((c) => c.status === st).length}
@@ -733,7 +735,7 @@ const InspectorRoutes: React.FC = () => {
                         }}
                       >
                         <option value="">Update Status</option>
-                        {["New", "Scheduled", "Visited", "Reported", "Closed"].map((s) => (
+                        {CASE_STATUSES.map((s) => (
                           <option key={s} value={s}>
                             {s}
                           </option>
