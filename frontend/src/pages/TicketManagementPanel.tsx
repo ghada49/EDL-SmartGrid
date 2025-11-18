@@ -102,8 +102,9 @@ const TicketManagementPanel: React.FC = () => {
                 e.currentTarget.value = "";
               }}
             >
-              <option value="">Change Status</option>
-              <option value="New">New</option>
+              <option value="" disabled>
+                Change Status
+              </option>
               <option value="In Review">In Review</option>
               <option value="Closed">Closed</option>
             </select>

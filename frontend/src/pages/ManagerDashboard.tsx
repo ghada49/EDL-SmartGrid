@@ -22,7 +22,7 @@ import {
   Case,
 } from "../api/cases";
 
-const CASE_STATUSES = ["New", "Scheduled", "Reported"] as const;
+const CASE_STATUSES = ["New", "Scheduled", "Reported", "Closed"] as const;
 
 const ManagerDashboard: React.FC = () => {
   const { role: myRole } = useAuth();

@@ -110,7 +110,7 @@ type InspectorProfile = {
 
 type InspectorTab = "calendar" | "route" | "home" | "cases";
 
-const CASE_STATUSES = ["New", "Scheduled", "Reported"] as const;
+const INSPECTOR_CASE_STATUSES = ["Scheduled", "Reported"] as const;
 
 // ---- date / formatting helpers ----
 
@@ -507,13 +507,41 @@ const InspectorRoutes: React.FC = () => {
   // "My Cases" panel state (from first file)
   const [myCases, setMyCases] = useState<Case[]>([]);
   const [casesLoading, setCasesLoading] = useState(false);
-  const [noteByCase, setNoteByCase] = useState<Record<number, string>>({});
-  const [readingByCase, setReadingByCase] = useState<Record<number, string>>({});
   const [openDetailId, setOpenDetailId] = useState<number | null>(null);
   const [detail, setDetail] = useState<any | null>(null);
   const [findingsByCase, setFindingsByCase] = useState<Record<number, string>>({});
   const [recoByCase, setRecoByCase] = useState<Record<number, string>>({});
   const [flashByCase, setFlashByCase] = useState<Record<number, string>>({});
+  const [readingByCase, setReadingByCase] = useState<Record<number, string>>({});
+
+  const flashMessage = (caseId: number, message: string) => {
+    setFlashByCase((prev) => ({ ...prev, [caseId]: message }));
+    setTimeout(
+      () =>
+        setFlashByCase((prev) => ({
+          ...prev,
+          [caseId]: "",
+        })),
+      2000
+    );
+  };
+
+  const autoLogReading = async (caseId: number) => {
+    const readingValue = (readingByCase[caseId] || "").trim();
+    if (!readingValue) return;
+    const readingNumber = Number(readingValue);
+    if (Number.isNaN(readingNumber)) {
+      flashMessage(caseId, "Enter a valid reading");
+      return;
+    }
+    try {
+      await addMeterReading(caseId, readingNumber);
+      setReadingByCase((prev) => ({ ...prev, [caseId]: "" }));
+      flashMessage(caseId, "Reading logged");
+    } catch (err: any) {
+      flashMessage(caseId, err?.message || "Failed to log reading");
+    }
+  };
 
   // ---- load inspector profile ----
   useEffect(() => {
@@ -696,7 +724,7 @@ const InspectorRoutes: React.FC = () => {
       ) : (
         <>
           <div className="eco-kpi-strip">
-            {CASE_STATUSES.map((st) => (
+            {INSPECTOR_CASE_STATUSES.map((st) => (
               <div className="eco-kpi glassy" key={st}>
                 <div className="eco-kpi-num">
                   {myCases.filter((c) => c.status === st).length}
@@ -711,7 +739,6 @@ const InspectorRoutes: React.FC = () => {
               <div className="eco-thead">
                 <span>Case</span>
                 <span>Status</span>
-                <span>Building</span>
                 <span>Actions</span>
               </div>
               {myCases.map((c) => (
@@ -719,28 +746,7 @@ const InspectorRoutes: React.FC = () => {
                   <div className="eco-row">
                     <span>#{c.id}</span>
                     <span>{c.status}</span>
-                    <span>{c.building_id ?? "-"}</span>
                     <span className="eco-actions" style={{ gap: 6 }}>
-                      <select
-                        className="auth-input"
-                        defaultValue=""
-                        onChange={async (e) => {
-                          const v = e.target.value;
-                          if (!v) return;
-                          await updateCaseStatus(c.id, v);
-                          if (!user_id) return;
-                          const rows = await listCases({ inspector_id: user_id });
-                          setMyCases(rows);
-                          e.currentTarget.value = "";
-                        }}
-                      >
-                        <option value="">Update Status</option>
-                        {CASE_STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
                       <button
                         className="btn-outline sm"
                         onClick={async () => {
@@ -756,49 +762,6 @@ const InspectorRoutes: React.FC = () => {
                         }}
                       >
                         {openDetailId === c.id ? "Hide Log" : "View Log"}
-                      </button>
-                    </span>
-                  </div>
-                  <div className="eco-row" style={{ background: "#f8faf8" }}>
-                    <span>Note</span>
-                    <span style={{ gridColumn: "span 3" }}>
-                      <input
-                        className="auth-input"
-                        placeholder="Add on-site observation"
-                        value={noteByCase[c.id] || ""}
-                        onChange={(e) =>
-                          setNoteByCase({ ...noteByCase, [c.id]: e.target.value })
-                        }
-                      />
-                      <button
-                        className="btn-eco sm"
-                        onClick={async () => {
-                          const t = (noteByCase[c.id] || "").trim();
-                          if (!t) return;
-                          await addCaseComment(c.id, t, "inspector");
-                          setNoteByCase({ ...noteByCase, [c.id]: "" });
-                          setFlashByCase({
-                            ...flashByCase,
-                            [c.id]: "Note added",
-                          });
-                          setTimeout(
-                            () =>
-                              setFlashByCase((m) => ({
-                                ...m,
-                                [c.id]: "",
-                              })),
-                            2000
-                          );
-                          if (openDetailId === c.id) {
-                            try {
-                              setDetail(await getCaseDetail(c.id));
-                            } catch {
-                              // ignore
-                            }
-                          }
-                        }}
-                      >
-                        Add
                       </button>
                     </span>
                   </div>
@@ -839,30 +802,14 @@ const InspectorRoutes: React.FC = () => {
                         onChange={(e) =>
                           setReadingByCase({ ...readingByCase, [c.id]: e.target.value })
                         }
-                      />
-                      <button
-                        className="btn-outline sm"
-                        onClick={async () => {
-                          const reading = (readingByCase[c.id] || "").trim();
-                          if (!reading) return;
-                          await addMeterReading(c.id, Number(reading));
-                          setReadingByCase({ ...readingByCase, [c.id]: "" });
-                          setFlashByCase({
-                            ...flashByCase,
-                            [c.id]: "Reading logged",
-                          });
-                          setTimeout(
-                            () =>
-                              setFlashByCase((m) => ({
-                                ...m,
-                                [c.id]: "",
-                              })),
-                            2000
-                          );
+                        onBlur={() => autoLogReading(c.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            autoLogReading(c.id);
+                          }
                         }}
-                      >
-                        Log
-                      </button>
+                      />
                     </span>
                   </div>
                   <div className="eco-row" style={{ background: "#f8faf8" }}>
@@ -910,6 +857,7 @@ const InspectorRoutes: React.FC = () => {
                             findings,
                             recommendation,
                           });
+                          await updateCaseStatus(c.id, "Reported");
                           setFindingsByCase({ ...findingsByCase, [c.id]: "" });
                           setRecoByCase({ ...recoByCase, [c.id]: "" });
                           setFlashByCase({
@@ -924,6 +872,10 @@ const InspectorRoutes: React.FC = () => {
                               })),
                             2000
                           );
+                          if (user_id) {
+                            const rows = await listCases({ inspector_id: user_id });
+                            setMyCases(rows);
+                          }
                         }}
                       >
                         Submit

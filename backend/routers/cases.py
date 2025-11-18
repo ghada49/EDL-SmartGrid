@@ -175,7 +175,7 @@ def update_case_status(
     actor: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
-    if status not in ["New", "Scheduled", "Reported"]:
+    if status not in ["New", "Scheduled", "Reported", "Closed"]:
         raise HTTPException(status_code=400, detail="Invalid status")
 
     case = db.query(models.Case).get(case_id)
@@ -398,12 +398,12 @@ def review_inspection_report(
     if decision == "Approve_Fraud":
         report.status = "Approved"
         case.outcome = "Fraud"
-        case.status = "Reported"
+        case.status = "Closed"
         note = "Report approved. Outcome: Fraud."
     elif decision == "Approve_NoIssue":
         report.status = "Approved"
         case.outcome = "No Issue"
-        case.status = "Reported"
+        case.status = "Closed"
         note = "Report approved. Outcome: No Issue."
     elif decision == "Recheck":
         report.status = "Recheck"
