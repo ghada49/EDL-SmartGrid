@@ -384,6 +384,13 @@ const ManagerDashboard: React.FC = () => {
                       <FeedbackPanel
                         embeddedCaseId={detailId ?? undefined}
                         showLogs={false}
+                        isClosed={detail.status === "Closed"}
+                        onConfirmed={async () => {
+                          await loadCases();
+                          if (detailId) {
+                            setDetail(await getCaseDetail(detailId));
+                          }
+                        }}
                       />
                     </div>
                   );

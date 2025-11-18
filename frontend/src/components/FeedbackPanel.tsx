@@ -5,17 +5,27 @@ import {
   FeedbackLogItem,
   FeedbackLabelIn,
 } from '../api/feedback';
+import { updateCaseStatus } from '../api/cases';
 
 type FeedbackPanelProps = {
   embeddedCaseId?: number;
   showLogs?: boolean;
+  onConfirmed?: () => Promise<void> | void;
+  isClosed?: boolean;
 };
 
 const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
   embeddedCaseId,
   showLogs = true,
+  onConfirmed,
+  isClosed = false,
 }) => {
   const isEmbedded = embeddedCaseId !== undefined;
+  const labelOptions: { value: 'fraud' | 'non_fraud' | 'uncertain'; text: string }[] = [
+    { value: 'fraud', text: 'Fraud' },
+    { value: 'non_fraud', text: 'No Fraud' },
+    { value: 'uncertain', text: 'Uncertain' },
+  ];
   // form state
   const [caseId, setCaseId] = useState<number | ''>(embeddedCaseId ?? '');
   const [label, setLabel] = useState<'fraud' | 'non_fraud' | 'uncertain'>('fraud');
@@ -29,6 +39,8 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
   const [loading, setLoading] = useState(false);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -89,6 +101,23 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
     await performSubmit(embeddedCaseId, value);
   };
 
+  const handleConfirm = async () => {
+    if (!embeddedCaseId) return;
+    setConfirming(true);
+    setConfirmMessage(null);
+    try {
+      await updateCaseStatus(embeddedCaseId, 'Closed');
+      setConfirmMessage({ type: 'success', text: 'Case marked as Closed.' });
+      if (onConfirmed) {
+        await onConfirmed();
+      }
+    } catch (e: any) {
+      setConfirmMessage({ type: 'error', text: e?.message || 'Failed to confirm status.' });
+    } finally {
+      setConfirming(false);
+    }
+  };
+
   const handleRefresh = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     load();
@@ -100,17 +129,33 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
         <div className="eco-card-head">
           <h3>Feedback</h3>
         </div>
-        <label style={{ fontWeight: 600 }}>Label</label>
-        <select
-          className="auth-input"
-          value={label}
-          onChange={(e) => handleEmbeddedSelect(e.target.value as typeof label)}
-          disabled={posting}
-        >
-          <option value="fraud">fraud</option>
-          <option value="non_fraud">non_fraud</option>
-          <option value="uncertain">uncertain</option>
-        </select>
+        <label style={{ fontWeight: 600, display: 'block', marginBottom: 6 }}>Label</label>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {labelOptions.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => handleEmbeddedSelect(opt.value)}
+              disabled={posting || isClosed}
+              style={{
+                flex: '1 1 120px',
+                padding: '10px 14px',
+                borderRadius: 999,
+                border: `1px solid ${
+                  label === opt.value ? 'rgba(27,94,32,0.8)' : 'rgba(27,94,32,0.3)'
+                }`,
+                background:
+                  label === opt.value ? 'rgba(27,94,32,0.15)' : 'rgba(27,94,32,0.05)',
+                color: label === opt.value ? '#1b5e20' : '#2e7d32',
+                fontWeight: 600,
+                cursor: posting ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {opt.text}
+            </button>
+          ))}
+        </div>
         <div
           style={{
             marginTop: 20,
@@ -130,9 +175,26 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
               textTransform: 'capitalize',
             }}
           >
-            {label.replace('_', ' ')}
+            {label === 'non_fraud' ? 'No Fraud' : label}
           </span>
         </div>
+        <button
+          className="btn-eco"
+          style={{ marginTop: 16 }}
+          type="button"
+          onClick={handleConfirm}
+          disabled={confirming || isClosed}
+        >
+          {confirming ? 'Confirming…' : 'Confirm'}
+        </button>
+        {confirmMessage && (
+          <div
+            className={confirmMessage.type === 'success' ? 'eco-success' : 'eco-error'}
+            style={{ marginTop: 8 }}
+          >
+            {confirmMessage.text}
+          </div>
+        )}
         {error && <div className="eco-error" style={{ marginTop: 12 }}>{error}</div>}
       </div>
     );

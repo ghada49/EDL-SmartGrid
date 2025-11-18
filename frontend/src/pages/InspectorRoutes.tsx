@@ -1,5 +1,5 @@
 // frontend/src/pages/InspectorRoutes.tsx
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -513,6 +513,10 @@ const InspectorRoutes: React.FC = () => {
   const [recoByCase, setRecoByCase] = useState<Record<number, string>>({});
   const [flashByCase, setFlashByCase] = useState<Record<number, string>>({});
   const [readingByCase, setReadingByCase] = useState<Record<number, string>>({});
+  const [reportsByCase, setReportsByCase] = useState<
+    Record<number, { findings?: string | null; recommendation?: string | null; submittedAt?: string | null } | null>
+  >({});
+  const reportsLoadingRef = useRef<Set<number>>(new Set());
   const [caseStatusFilter, setCaseStatusFilter] = useState<
     (typeof INSPECTOR_CASE_STATUSES)[number] | null
   >(null);
@@ -545,6 +549,38 @@ const InspectorRoutes: React.FC = () => {
       flashMessage(caseId, err?.message || "Failed to log reading");
     }
   };
+
+  useEffect(() => {
+    myCases
+      .filter((c) => c.status === "Reported" && reportsByCase[c.id] === undefined)
+      .forEach((c) => {
+        if (reportsLoadingRef.current.has(c.id)) return;
+        reportsLoadingRef.current.add(c.id);
+        (async () => {
+          try {
+            const detail = await getCaseDetail(c.id);
+            const latest =
+              detail?.reports && detail.reports.length
+                ? detail.reports[detail.reports.length - 1]
+                : null;
+            setReportsByCase((prev) => ({
+              ...prev,
+              [c.id]: latest
+                ? {
+                    findings: latest.findings,
+                    recommendation: latest.recommendation,
+                    submittedAt: latest.created_at,
+                  }
+                : null,
+            }));
+          } catch {
+            setReportsByCase((prev) => ({ ...prev, [c.id]: null }));
+          } finally {
+            reportsLoadingRef.current.delete(c.id);
+          }
+        })();
+      });
+  }, [myCases, reportsByCase]);
 
   // ---- load inspector profile ----
   useEffect(() => {
@@ -778,123 +814,165 @@ const InspectorRoutes: React.FC = () => {
                       </button>
                     </span>
                   </div>
-                  <div className="eco-row" style={{ background: "#f8faf8" }}>
-                    <span>Photo</span>
-                    <span style={{ gridColumn: "span 3" }}>
-                      <input
-                        className="auth-input"
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          await uploadCaseAttachment(c.id, file, "inspector");
-                          setFlashByCase({
-                            ...flashByCase,
-                            [c.id]: "Photo uploaded",
-                          });
-                          setTimeout(
-                            () =>
-                              setFlashByCase((m) => ({
-                                ...m,
-                                [c.id]: "",
-                              })),
-                            2000
-                          );
-                        }}
-                      />
-                    </span>
-                  </div>
-                  <div className="eco-row" style={{ background: "#f8faf8" }}>
-                    <span>Meter</span>
-                    <span style={{ gridColumn: "span 3" }}>
-                      <input
-                        className="auth-input"
-                        placeholder="Reading"
-                        value={readingByCase[c.id] || ""}
-                        onChange={(e) =>
-                          setReadingByCase({ ...readingByCase, [c.id]: e.target.value })
-                        }
-                        onBlur={() => autoLogReading(c.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            autoLogReading(c.id);
-                          }
-                        }}
-                      />
-                    </span>
-                  </div>
-                  <div className="eco-row" style={{ background: "#f8faf8" }}>
-                    <span>Fraud</span>
-                    <span style={{ gridColumn: "span 3" }}>
-                      <textarea
-                        className="auth-input"
-                        placeholder="Findings"
-                        value={findingsByCase[c.id] || ""}
-                        onChange={(e) =>
-                          setFindingsByCase({ ...findingsByCase, [c.id]: e.target.value })
-                        }
-                      />
-                      <textarea
-                        className="auth-input mt-2"
-                        placeholder="Recommendation"
-                        value={recoByCase[c.id] || ""}
-                        onChange={(e) =>
-                          setRecoByCase({ ...recoByCase, [c.id]: e.target.value })
-                        }
-                      />
-                      <button
-                        className="btn-outline sm mt-2"
-                        onClick={async () => {
-                          const findings = (findingsByCase[c.id] || "").trim();
-                          const recommendation = (recoByCase[c.id] || "").trim();
-                          if (!findings && !recommendation) return;
-                          if (!user_id) {
-                            setFlashByCase({
-                              ...flashByCase,
-                              [c.id]: "Unable to submit report: missing user id",
-                            });
-                            setTimeout(
-                              () =>
-                                setFlashByCase((m) => ({
-                                  ...m,
-                                  [c.id]: "",
-                                })),
-                              2000
-                            );
-                            return;
-                          }
-                          await submitInspectionReport(c.id, {
-                            inspector_id: user_id,
-                            findings,
-                            recommendation,
-                          });
-                          await updateCaseStatus(c.id, "Reported");
-                          setFindingsByCase({ ...findingsByCase, [c.id]: "" });
-                          setRecoByCase({ ...recoByCase, [c.id]: "" });
-                          setFlashByCase({
-                            ...flashByCase,
-                            [c.id]: "Report submitted",
-                          });
-                          setTimeout(
-                            () =>
-                              setFlashByCase((m) => ({
-                                ...m,
-                                [c.id]: "",
-                              })),
-                            2000
-                          );
-                          if (user_id) {
-                            const rows = await listCases({ inspector_id: user_id });
-                            setMyCases(rows);
-                          }
-                        }}
-                      >
-                        Submit
-                      </button>
-                    </span>
-                  </div>
+                  {c.status === "Reported" ? (
+                    <div className="eco-row" style={{ background: "#f8faf8" }}>
+                      <span>Submitted Report</span>
+                      <span style={{ gridColumn: "span 3" }}>
+                        {reportsByCase[c.id] === undefined ? (
+                          <em>Loading submitted details…</em>
+                        ) : reportsByCase[c.id] === null ? (
+                          <em>No report data available.</em>
+                        ) : (
+                          <div>
+                            <p style={{ marginBottom: 4 }}>
+                              <strong>Findings:</strong>{" "}
+                              {reportsByCase[c.id]?.findings || "—"}
+                            </p>
+                            <p style={{ marginBottom: 4 }}>
+                              <strong>Recommendation:</strong>{" "}
+                              {reportsByCase[c.id]?.recommendation || "—"}
+                            </p>
+                            {reportsByCase[c.id]?.submittedAt && (
+                              <p style={{ fontSize: "0.85rem", color: "#4b5563" }}>
+                                Submitted at{" "}
+                                {new Date(
+                                  reportsByCase[c.id]?.submittedAt as string
+                                ).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="eco-row" style={{ background: "#f8faf8" }}>
+                        <span>Photo</span>
+                        <span style={{ gridColumn: "span 3" }}>
+                          <input
+                            className="auth-input"
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              await uploadCaseAttachment(c.id, file, "inspector");
+                              setFlashByCase({
+                                ...flashByCase,
+                                [c.id]: "Photo uploaded",
+                              });
+                              setTimeout(
+                                () =>
+                                  setFlashByCase((m) => ({
+                                    ...m,
+                                    [c.id]: "",
+                                  })),
+                                2000
+                              );
+                            }}
+                          />
+                        </span>
+                      </div>
+                      <div className="eco-row" style={{ background: "#f8faf8" }}>
+                        <span>Meter</span>
+                        <span style={{ gridColumn: "span 3" }}>
+                          <input
+                            className="auth-input"
+                            placeholder="Reading"
+                            value={readingByCase[c.id] || ""}
+                            onChange={(e) =>
+                              setReadingByCase({ ...readingByCase, [c.id]: e.target.value })
+                            }
+                            onBlur={() => autoLogReading(c.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                autoLogReading(c.id);
+                              }
+                            }}
+                          />
+                        </span>
+                      </div>
+                      <div className="eco-row" style={{ background: "#f8faf8" }}>
+                        <span>Fraud</span>
+                        <span style={{ gridColumn: "span 3" }}>
+                          <textarea
+                            className="auth-input"
+                            placeholder="Findings"
+                            value={findingsByCase[c.id] || ""}
+                            onChange={(e) =>
+                              setFindingsByCase({ ...findingsByCase, [c.id]: e.target.value })
+                            }
+                          />
+                          <textarea
+                            className="auth-input mt-2"
+                            placeholder="Recommendation"
+                            value={recoByCase[c.id] || ""}
+                            onChange={(e) =>
+                              setRecoByCase({ ...recoByCase, [c.id]: e.target.value })
+                            }
+                          />
+                          <button
+                            className="btn-outline sm mt-2"
+                            onClick={async () => {
+                              const findings = (findingsByCase[c.id] || "").trim();
+                              const recommendation = (recoByCase[c.id] || "").trim();
+                              if (!findings && !recommendation) return;
+                              if (!user_id) {
+                                setFlashByCase({
+                                  ...flashByCase,
+                                  [c.id]: "Unable to submit report: missing user id",
+                                });
+                                setTimeout(
+                                  () =>
+                                    setFlashByCase((m) => ({
+                                      ...m,
+                                      [c.id]: "",
+                                    })),
+                                  2000
+                                );
+                                return;
+                              }
+                              await submitInspectionReport(c.id, {
+                                inspector_id: user_id,
+                                findings,
+                                recommendation,
+                              });
+                              await updateCaseStatus(c.id, "Reported");
+                              setReportsByCase((prev) => ({
+                                ...prev,
+                                [c.id]: {
+                                  findings,
+                                  recommendation,
+                                  submittedAt: new Date().toISOString(),
+                                },
+                              }));
+                              setFindingsByCase({ ...findingsByCase, [c.id]: "" });
+                              setRecoByCase({ ...recoByCase, [c.id]: "" });
+                              setFlashByCase({
+                                ...flashByCase,
+                                [c.id]: "Report submitted",
+                              });
+                              setTimeout(
+                                () =>
+                                  setFlashByCase((m) => ({
+                                    ...m,
+                                    [c.id]: "",
+                                  })),
+                                2000
+                              );
+                              if (user_id) {
+                                const rows = await listCases({ inspector_id: user_id });
+                                setMyCases(rows);
+                              }
+                            }}
+                          >
+                            Submit
+                          </button>
+                        </span>
+                      </div>
+                    </>
+                  )}
                   {flashByCase[c.id] && (
                     <div
                       className="eco-row"
