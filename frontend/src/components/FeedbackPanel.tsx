@@ -100,18 +100,38 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
         <div className="eco-card-head">
           <h3>Feedback</h3>
         </div>
-        <div className="eco-actions" style={{ alignItems: 'center' }}>
-          <label style={{ fontWeight: 600 }}>Label</label>
-          <select
-            className="auth-input"
-            value={label}
-            onChange={(e) => handleEmbeddedSelect(e.target.value as typeof label)}
-            disabled={posting}
+        <label style={{ fontWeight: 600 }}>Label</label>
+        <select
+          className="auth-input"
+          value={label}
+          onChange={(e) => handleEmbeddedSelect(e.target.value as typeof label)}
+          disabled={posting}
+        >
+          <option value="fraud">fraud</option>
+          <option value="non_fraud">non_fraud</option>
+          <option value="uncertain">uncertain</option>
+        </select>
+        <div
+          style={{
+            marginTop: 20,
+            padding: '12px 16px',
+            background: '#fff',
+            borderRadius: 12,
+            border: '1px solid rgba(27, 94, 32, 0.2)',
+            textAlign: 'center',
+          }}
+        >
+          <span style={{ fontSize: '1.2rem', fontWeight: 600, display: 'block' }}>Result</span>
+          <span
+            style={{
+              fontSize: '1.8rem',
+              fontWeight: 800,
+              color: label === 'fraud' ? '#c62828' : '#1b5e20',
+              textTransform: 'capitalize',
+            }}
           >
-            <option value="fraud">fraud</option>
-            <option value="non_fraud">non_fraud</option>
-            <option value="uncertain">uncertain</option>
-          </select>
+            {label.replace('_', ' ')}
+          </span>
         </div>
         {error && <div className="eco-error" style={{ marginTop: 12 }}>{error}</div>}
       </div>

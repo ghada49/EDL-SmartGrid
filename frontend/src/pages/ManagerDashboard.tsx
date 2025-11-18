@@ -15,7 +15,6 @@ import { uploadDataset, getDatasetHistory, DQ } from "../api/ops";
 import {
   listCases,
   assignInspector,
-  decideCase,
   getCaseDetail,
   reviewCase,
   addCaseComment,
@@ -268,9 +267,6 @@ const ManagerDashboard: React.FC = () => {
                         ))}
                     </select>
 
-                    <button className="btn-eco sm" onClick={() => decideCase(c.id, "Fraud")}>
-                      Mark Fraud
-                    </button>
                   </div>
                 </div>
               ))}
@@ -295,7 +291,6 @@ const ManagerDashboard: React.FC = () => {
               <h3>Case #{detailId}</h3>
 
               <p>Status: {detail.status}</p>
-              <p>Outcome: {detail.outcome || "-"}</p>
               <p>
                 Building: {detail.building?.id || "-"}
                 {detail.building?.district ? (
@@ -316,7 +311,7 @@ const ManagerDashboard: React.FC = () => {
                 {detail.activities.map((a: any) => (
                   <div className="eco-row" key={a.id}>
                     <span>{new Date(a.created_at).toLocaleString()}</span>
-                    <span>{a.actor}</span>
+                    <span>{a.actor || "-"}</span>
                     <span>{a.action}</span>
                     <span>{a.note}</span>
                   </div>
