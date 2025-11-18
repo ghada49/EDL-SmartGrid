@@ -45,8 +45,8 @@ const Home: React.FC = () => {
 
         <div className="ms-card">
           <div className="ms-card__icon" aria-hidden><FaBolt /></div>
-          <h3>Expected kWh Tool</h3>
-          <p>Estimate your household’s electricity consumption</p>
+          <h3>Energy Awareness Tool</h3>
+          <p>Get practical advice</p>
           <Link to="/signup" className="ms-card__link">Open</Link>
         </div>
       </section>

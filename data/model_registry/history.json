@@ -146,5 +146,42 @@
       "scaler": "data\\processed\\anomaly_scores_scaler.joblib",
       "pca": "data\\processed\\anomaly_scores_pca.joblib"
     }
+  },
+  {
+    "model_id": "fused_if_lof_ae_ocsvm_copula",
+    "version": 5,
+    "trained_at": "2025-11-18T12:45:06.986121+00:00",
+    "mode": "fast",
+    "duration_sec": 350.08227801322937,
+    "data": {
+      "n_samples": 1761,
+      "n_features": 26,
+      "source": "data/latest_ingested.csv"
+    },
+    "metrics": {
+      "silhouette": 0.6530848758165984,
+      "dunn": 0.04531195088569784,
+      "dbi": 0.91547784146966
+    },
+    "stability": {
+      "bootstrap_spearman_rho": 0.9757278457723139,
+      "bootstrap_jaccard_at_k": 0.9053269064392535,
+      "bootstrap_ari": 0.9413598270460328,
+      "noise_rho": 0.9888629824810987,
+      "seed_rho": 0.9980686013841099
+    },
+    "hyperparams": {
+      "contamination": 0.02,
+      "use_pca": true,
+      "use_fa": false,
+      "pca_components": 7
+    },
+    "files": {
+      "scores_csv": "data\\processed\\anomaly_scores.csv",
+      "meta_json": "data\\processed\\anomaly_scores_meta.json",
+      "stability_json": "data\\processed\\anomaly_scores_stability.json",
+      "scaler": "data\\processed\\anomaly_scores_scaler.joblib",
+      "pca": "data\\processed\\anomaly_scores_pca.joblib"
+    }
   }
 ]
