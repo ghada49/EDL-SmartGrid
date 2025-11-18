@@ -105,11 +105,17 @@ export async function addMeterReading(caseId: number, reading: number, unit = 'k
   return data as { id: number; case_id: number }
 }
 
-export async function submitInspectionReport(caseId: number, inspectorId: string, findings: string, recommendation: string) {
+export interface InspectionReportPayload {
+  inspector_id: string
+  findings: string
+  recommendation: string
+}
+
+export async function submitInspectionReport(caseId: number, payload: InspectionReportPayload) {
   const form = new FormData()
-  form.append('inspector_id', inspectorId)
-  form.append('findings', findings)
-  form.append('recommendation', recommendation)
+  form.append('inspector_id', payload.inspector_id)
+  form.append('findings', payload.findings)
+  form.append('recommendation', payload.recommendation)
   const { data } = await api.post(`/inspections/${caseId}/report`, form)
   return data as { message: string; report_id: number }
 }

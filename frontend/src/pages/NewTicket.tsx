@@ -8,6 +8,13 @@ const NewTicket: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setMessage("Error: You must be logged in to submit a ticket.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("subject", subject);
     formData.append("description", description);
@@ -16,6 +23,9 @@ const NewTicket: React.FC = () => {
     try {
       const res = await fetch("http://127.0.0.1:8000/tickets/", {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,   // ✅ FIXED — send token
+        },
         body: formData,
       });
 
@@ -45,6 +55,7 @@ const NewTicket: React.FC = () => {
           <p className="auth-sub">
             Submit a new complaint or report a problem.
           </p>
+
           <form onSubmit={handleSubmit} encType="multipart/form-data">
             <div className="auth-field">
               <label className="auth-label">Subject</label>
@@ -74,7 +85,7 @@ const NewTicket: React.FC = () => {
                 type="file"
                 className="auth-input"
                 name="file"
-                accept="image/*,application/pdf"
+                accept="image/png, image/jpeg"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
               />
             </div>
@@ -82,6 +93,7 @@ const NewTicket: React.FC = () => {
             <button className="btn-primary" type="submit">
               Submit Ticket
             </button>
+
             {message && <p className="helper-error">{message}</p>}
           </form>
         </div>
