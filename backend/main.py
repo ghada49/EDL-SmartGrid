@@ -40,8 +40,11 @@ app.include_router(users_router)
 app.include_router(inspector_router.router, prefix="/inspector", tags=["Inspector"])
 app.include_router(ops_train.router)
 
-REPO_ROOT = Path(__file__).resolve().parents[1]      # repo root = EECE-490-Project-4
-PLOTS_DIR = REPO_ROOT / "data" / "plots"             # data/plots
+REPO_ROOT = Path(__file__).resolve().parents[1]
+DATA_DIR = REPO_ROOT / "data"
+PLOTS_DIR = DATA_DIR / "plots"
+UPLOADS_DIR = DATA_DIR / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
 app.mount(
     "/static",
@@ -53,6 +56,12 @@ app.mount(
     "/model_plots",
     StaticFiles(directory=str(PLOTS_DIR)),
     name="model_plots",
+)
+
+app.mount(
+    "/data",
+    StaticFiles(directory=str(DATA_DIR)),
+    name="data",
 )
 
 

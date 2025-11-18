@@ -28,6 +28,7 @@ def list_tickets(
             "photo_path": t.photo_path,
             "created_at": t.created_at,
             "user_id": t.user_id,
+            "user_name": t.user.full_name if t.user else None,
             "user_email": t.user.email if t.user else None,
         }
         for t in rows

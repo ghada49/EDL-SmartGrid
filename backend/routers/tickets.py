@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from datetime import datetime
+from pathlib import Path
 import os, shutil
 
 from backend.db import get_db
@@ -12,8 +13,34 @@ from backend.models.user import User
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
 
-UPLOAD_DIR = "data/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+UPLOAD_DIR = Path("data/uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _public_photo_path(filename: str) -> str:
+    """Ensure we expose a consistent web path irrespective of OS path separators."""
+    filename = filename.replace("\\", "/")
+    if filename.startswith("data/"):
+        return filename
+    # try to locate the uploads folder in absolute paths
+    idx = filename.find("data/uploads")
+    if idx != -1:
+        return filename[idx:]
+    return f"data/uploads/{Path(filename).name}"
+
+
+def _serialize_ticket(ticket: Ticket) -> dict:
+    return {
+        "id": ticket.id,
+        "subject": ticket.subject,
+        "description": ticket.description,
+        "status": ticket.status,
+        "photo_path": _public_photo_path(ticket.photo_path)
+        if ticket.photo_path
+        else None,
+        "created_at": ticket.created_at.isoformat() if ticket.created_at else None,
+        "user_id": ticket.user_id,
+    }
 
 
 # -------------------------------------------------------------

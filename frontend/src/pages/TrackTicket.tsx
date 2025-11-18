@@ -1,10 +1,28 @@
 import React, { useEffect, useState } from "react";
 
+type Ticket = {
+  id: number;
+  subject: string;
+  status: string;
+  description: string;
+  photo_path?: string | null;
+  created_at?: string;
+};
+
+const splitDescription = (description: string | null | undefined) => {
+  if (!description) return { summary: "", followups: [] as string[] };
+
+  const parts = description.split(/\n\n(?=\[Follow-up )/);
+  const summary = parts.shift() ?? "";
+  return { summary, followups: parts };
+};
+
+const API_BASE = "http://127.0.0.1:8000";
+
 const TrackTicket: React.FC = () => {
-  const [tickets, setTickets] = useState<any[]>([]);
-  const [selected, setSelected] = useState<any | null>(null);
-  const [note, setNote] = useState("");
-  const [message, setMessage] = useState<any>(null);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [notes, setNotes] = useState<Record<number, string>>({});
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const token = localStorage.getItem("token");
 
@@ -13,7 +31,7 @@ const TrackTicket: React.FC = () => {
   // --------------------------------------------
   const loadTickets = async () => {
     try {
-      const res = await fetch("http://127.0.0.1:8000/tickets/mine", {
+      const res = await fetch(`${API_BASE}/tickets/mine`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -35,24 +53,27 @@ const TrackTicket: React.FC = () => {
   // Add follow-up
   // --------------------------------------------
   const handleFollowUp = async (ticketId: number) => {
+    const note = notes[ticketId]?.trim();
+    if (!note) {
+      setMessage({ type: "error", text: "Enter a follow-up note before submitting." });
+      return;
+    }
+
     try {
       const formData = new FormData();
       formData.append("note", note);
 
-      const res = await fetch(
-        `http://127.0.0.1:8000/tickets/${ticketId}/followup`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        }
-      );
+      const res = await fetch(`${API_BASE}/tickets/${ticketId}/followup`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Failed");
 
       setMessage({ type: "success", text: "Follow-up added!" });
-      setNote("");
+      setNotes((prev) => ({ ...prev, [ticketId]: "" }));
       loadTickets();
     } catch (err: any) {
       setMessage({ type: "error", text: err.message });
@@ -72,58 +93,74 @@ const TrackTicket: React.FC = () => {
             <p className="helper-error">You have no submitted tickets.</p>
           )}
 
-          {tickets.map((t) => (
-            <div
-              key={t.id}
-              className="eco-card"
-              style={{ padding: 12, marginTop: 14, cursor: "pointer" }}
-              onClick={() => setSelected(t)}
-            >
-              <strong>#{t.id} — {t.subject}</strong>
-              <p>Status: {t.status}</p>
-            </div>
-          ))}
+          {tickets.map((t) => {
+            const { summary, followups } = splitDescription(t.description);
 
-          {/* ---------------- Ticket Detail Modal ---------------- */}
-          {selected && (
-            <div className="eco-modal">
-              <div className="eco-modal-content">
-                <h3>Ticket #{selected.id}</h3>
-
-                <p><strong>Status:</strong> {selected.status}</p>
-                <p><strong>Description:</strong> {selected.description}</p>
-
-                {selected.photo_path && (
-                  <img
-                    src={`http://127.0.0.1:8000/${selected.photo_path}`}
-                    alt="evidence"
-                    style={{ width: "100%", maxWidth: 300, marginTop: 10 }}
-                  />
+            return (
+              <div
+                key={t.id}
+                className="eco-card"
+                style={{ padding: 16, marginTop: 14 }}
+              >
+                <strong>#{t.id} — {t.subject}</strong>
+                <p>Status: {t.status}</p>
+                {t.created_at && (
+                  <p className="eco-muted">
+                    Created: {new Date(t.created_at).toLocaleString()}
+                  </p>
                 )}
 
-                <textarea
-                  className="auth-input"
-                  placeholder="Add follow-up note"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                />
+                <div style={{ marginTop: 12 }}>
+                  <h4 style={{ margin: "0 0 4px" }}>Description</h4>
+                  <pre className="eco-pre" style={{ whiteSpace: "pre-wrap" }}>
+                    {summary || "No description provided."}
+                  </pre>
+                </div>
 
-                <button
-                  className="btn-outline"
-                  onClick={() => handleFollowUp(selected.id)}
-                >
-                  Add Follow-up
-                </button>
+                {followups.length > 0 && (
+                  <div style={{ marginTop: 10 }}>
+                    <h4 style={{ margin: "0 0 4px" }}>Follow-ups</h4>
+                    <ol className="eco-steps">
+                      {followups.map((fu, idx) => (
+                        <li key={idx} style={{ whiteSpace: "pre-wrap" }}>
+                          {fu}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
 
-                <button
-                  className="btn-primary"
-                  onClick={() => setSelected(null)}
-                >
-                  Close
-                </button>
+                {t.photo_path && (
+                  <div style={{ marginTop: 12 }}>
+                    <h4 style={{ margin: "0 0 4px" }}>Evidence</h4>
+                    <img
+                      src={`${API_BASE}/${t.photo_path}`}
+                      alt="ticket evidence"
+                      style={{ width: "100%", maxWidth: 360, borderRadius: 8 }}
+                    />
+                  </div>
+                )}
+
+                <div style={{ marginTop: 14 }}>
+                  <textarea
+                    className="auth-input"
+                    placeholder="Add follow-up note"
+                    value={notes[t.id] ?? ""}
+                    onChange={(e) =>
+                      setNotes((prev) => ({ ...prev, [t.id]: e.target.value }))
+                    }
+                  />
+                  <button
+                    className="btn-outline"
+                    style={{ marginTop: 8 }}
+                    onClick={() => handleFollowUp(t.id)}
+                  >
+                    Add Follow-up
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })}
 
           {message && (
             <p

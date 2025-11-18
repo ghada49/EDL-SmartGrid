@@ -5,6 +5,7 @@ import api from "./client";
 export type TicketRow = {
   id: number;
   user_id: string;
+  user_name?: string | null;
   user_email?: string | null;
   subject: string;
   description: string;

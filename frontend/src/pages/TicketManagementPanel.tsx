@@ -65,7 +65,7 @@ const TicketManagementPanel: React.FC = () => {
         <div className="eco-row" key={t.id}>
           <span>Ticket #{t.id}</span>
           <span>Status: {t.status}</span>
-          <span>User: {t.user_email ?? t.user_id}</span>
+          <span>User: {t.user_name ?? t.user_email ?? t.user_id}</span>
 
           <div className="eco-actions">
             {/* View Ticket */}

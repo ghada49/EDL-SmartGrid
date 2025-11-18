@@ -298,6 +298,10 @@ body {
   outline: none;
 }
 
+textarea.auth-input {
+  resize: none;
+}
+
 .auth-input::placeholder {
   color: #8aa99a;
 }
