@@ -326,116 +326,114 @@ const ManagerDashboard: React.FC = () => {
                 ))}
               </div>
 
-              <h4>Reports</h4>
+              <h4>Report</h4>
               {detail.reports.length === 0 && (
-                <p className="eco-muted">No inspection reports have been submitted yet.</p>
+                <p className="eco-muted">No inspection report has been submitted yet.</p>
               )}
-              {detail.reports.map((r: any) => {
-                const readings =
-                  (detail.activities || []).filter(
-                    (a: any) =>
-                      a.action === "METER_READING" &&
-                      (!r.created_at ||
-                        !a.created_at ||
-                        new Date(a.created_at) <= new Date(r.created_at))
-                  ) || [];
-                const readingEntry =
-                  readings.length > 0 ? readings[readings.length - 1] : null;
+              {detail.reports.length > 0 && (
+                (() => {
+                  const r = detail.reports[0];
+                  const readings =
+                    (detail.activities || []).filter(
+                      (a: any) =>
+                        a.action === "METER_READING" &&
+                        (!r.created_at ||
+                          !a.created_at ||
+                          new Date(a.created_at) <= new Date(r.created_at))
+                    ) || [];
+                  const readingEntry =
+                    readings.length > 0 ? readings[readings.length - 1] : null;
 
-                return (
-                  <div
-                    key={r.id}
-                    className="eco-card glassy"
-                    style={{ marginBottom: 12, padding: 16, boxShadow: "none" }}
-                  >
-                    <div className="eco-row" style={{ marginBottom: 12 }}>
-                      <span>
-                        <strong>Report #{r.id}</strong>
-                      </span>
-                      <span>Status: {r.status}</span>
-                      <span>
-                        Submitted: {r.created_at ? new Date(r.created_at).toLocaleString() : "-"}
-                      </span>
-                    </div>
-                    <div style={{ marginBottom: 12 }}>
-                      <p className="eco-muted">Findings</p>
-                      <pre className="eco-pre" style={{ whiteSpace: "pre-wrap" }}>
-                        {r.findings || "No findings provided."}
-                      </pre>
-                    </div>
-                    <div style={{ marginBottom: 12 }}>
-                      <p className="eco-muted">Recommendation</p>
-                      <pre className="eco-pre" style={{ whiteSpace: "pre-wrap" }}>
-                        {r.recommendation || "No recommendation provided."}
-                      </pre>
-                    </div>
-                    {readingEntry && (
-                      <p style={{ marginBottom: 12 }}>
-                        <strong>Latest Meter Reading:</strong> {readingEntry.note}{" "}
-                        {readingEntry.created_at
-                          ? `(${new Date(readingEntry.created_at).toLocaleString()})`
-                          : ""}
-                      </p>
-                    )}
-                    {detail.attachments && detail.attachments.length > 0 && (
-                      <div style={{ marginBottom: 12 }}>
-                        <p className="eco-muted">Attachments</p>
-                        <ul style={{ margin: 0, paddingLeft: 16 }}>
-                          {detail.attachments.map((at: any) => (
-                            <li key={at.id}>
-                              {at.filename}{" "}
-                              {at.uploaded_at
-                                ? `(${new Date(at.uploaded_at).toLocaleString()})`
-                                : ""}
-                            </li>
-                          ))}
-                        </ul>
+                  return (
+                    <div
+                      key={r.id}
+                      className="eco-card glassy"
+                      style={{ marginBottom: 12, padding: 16, boxShadow: "none" }}
+                    >
+                      {r.findings && (
+                        <div style={{ marginBottom: 12 }}>
+                          <p className="eco-muted">Findings</p>
+                          <pre className="eco-pre" style={{ whiteSpace: "pre-wrap" }}>
+                            {r.findings}
+                          </pre>
+                        </div>
+                      )}
+                      {r.recommendation && (
+                        <div style={{ marginBottom: 12 }}>
+                          <p className="eco-muted">Recommendation</p>
+                          <pre className="eco-pre" style={{ whiteSpace: "pre-wrap" }}>
+                            {r.recommendation}
+                          </pre>
+                        </div>
+                      )}
+                      {readingEntry && (
+                        <p style={{ marginBottom: 12 }}>
+                          <strong>Latest Meter Reading:</strong> {readingEntry.note}{" "}
+                          {readingEntry.created_at
+                            ? `(${new Date(readingEntry.created_at).toLocaleString()})`
+                            : ""}
+                        </p>
+                      )}
+                      {detail.attachments && detail.attachments.length > 0 && (
+                        <div style={{ marginBottom: 12 }}>
+                          <p className="eco-muted">Attachments</p>
+                          <ul style={{ margin: 0, paddingLeft: 16 }}>
+                            {detail.attachments.map((at: any) => (
+                              <li key={at.id}>
+                                {at.filename}{" "}
+                                {at.uploaded_at
+                                  ? `(${new Date(at.uploaded_at).toLocaleString()})`
+                                  : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <div className="eco-actions">
+                        <button
+                          className="btn-outline sm"
+                          onClick={async () => {
+                            await reviewCase(detailId, r.id, "Approve_Fraud");
+                            setDetail(await getCaseDetail(detailId));
+                          }}
+                        >
+                          Approve Fraud
+                        </button>
+
+                        <button
+                          className="btn-outline sm"
+                          onClick={async () => {
+                            await reviewCase(detailId, r.id, "Approve_NoIssue");
+                            setDetail(await getCaseDetail(detailId));
+                          }}
+                        >
+                          Approve No Issue
+                        </button>
+
+                        <button
+                          className="btn-outline sm"
+                          onClick={async () => {
+                            await reviewCase(detailId, r.id, "Recheck");
+                            setDetail(await getCaseDetail(detailId));
+                          }}
+                        >
+                          Recheck
+                        </button>
+
+                        <button
+                          className="btn-outline sm"
+                          onClick={async () => {
+                            await reviewCase(detailId, r.id, "Reject");
+                            setDetail(await getCaseDetail(detailId));
+                          }}
+                        >
+                          Reject
+                        </button>
                       </div>
-                    )}
-                    <div className="eco-actions">
-                      <button
-                        className="btn-outline sm"
-                        onClick={async () => {
-                          await reviewCase(detailId, r.id, "Approve_Fraud");
-                          setDetail(await getCaseDetail(detailId));
-                        }}
-                      >
-                        Approve Fraud
-                      </button>
-
-                      <button
-                        className="btn-outline sm"
-                        onClick={async () => {
-                          await reviewCase(detailId, r.id, "Approve_NoIssue");
-                          setDetail(await getCaseDetail(detailId));
-                        }}
-                      >
-                        Approve No Issue
-                      </button>
-
-                      <button
-                        className="btn-outline sm"
-                        onClick={async () => {
-                          await reviewCase(detailId, r.id, "Recheck");
-                          setDetail(await getCaseDetail(detailId));
-                        }}
-                      >
-                        Recheck
-                      </button>
-
-                      <button
-                        className="btn-outline sm"
-                        onClick={async () => {
-                          await reviewCase(detailId, r.id, "Reject");
-                          setDetail(await getCaseDetail(detailId));
-                        }}
-                      >
-                        Reject
-                      </button>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })()
+              )}
 
               {/* COMMENT */}
               <div className="eco-actions" style={{ marginTop: 8 }}>
