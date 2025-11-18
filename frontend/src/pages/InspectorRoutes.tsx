@@ -6,7 +6,6 @@ import {
   FaMapMarkedAlt,
   FaRoute,
   FaClipboardCheck,
-  FaFlag,
   FaCalendarCheck,
   FaFilePdf,
   FaFileExcel,
@@ -109,15 +108,7 @@ type InspectorProfile = {
   user_id?: string | null;
 };
 
-type InspectorSummary = {
-  inspector_id: number;
-  pending: number;
-  accepted: number;
-  visited: number;
-  closed_cases: number;
-  fraud_detected: number;
-  visits_today: number;
-};
+type InspectorTab = "calendar" | "route" | "home" | "cases";
 
 // ---- date / formatting helpers ----
 
@@ -153,14 +144,12 @@ type TodayScheduleProps = {
   inspector: InspectorProfile | null;
   onRoutesChange?: (routes: RouteOut | null) => void;
   onRoutesLoadingChange?: (loading: boolean) => void;
-  onChanged?: () => void;
 };
 
 const TodaySchedule: React.FC<TodayScheduleProps> = ({
   inspector,
   onRoutesChange,
   onRoutesLoadingChange,
-  onChanged,
 }) => {
   const today = useMemo(() => isoDay(new Date()), []);
   const [selectedDay, setSelectedDay] = useState(today);
@@ -208,7 +197,6 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({
       setBusy(true);
       await patchJSON<Appt>(`/inspector/appointments/${id}/respond`, { action });
       await load();
-      onChanged?.();
     } catch (e: any) {
       alert(e.message || String(e));
     } finally {
@@ -221,7 +209,6 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({
       setBusy(true);
       await patchJSON<Appt>(`/inspector/schedule/${id}/confirm`, { action: "confirm" });
       await load();
-      onChanged?.();
     } catch (e: any) {
       alert(e.message || String(e));
     } finally {
@@ -234,7 +221,6 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({
       setBusy(true);
       await patchJSON<Appt>(`/inspector/schedule/${id}/confirm`, { action: "visited" });
       await load();
-      onChanged?.();
     } catch (e: any) {
       alert(e.message || String(e));
     } finally {
@@ -254,7 +240,6 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({
         end_time: new Date(end).toISOString(),
       });
       await load();
-      onChanged?.();
     } catch (e: any) {
       alert(e.message || String(e));
     } finally {
@@ -504,14 +489,13 @@ const RouteSummaryCard: React.FC<{
 const InspectorRoutes: React.FC = () => {
   const { role, user_id } = useAuth(); // need both: role (new) + user_id (old myCases API)
 
-  // inspector profile + route/summary (from second file)
+  // inspector profile + route state (from second file)
   const [profile, setProfile] = useState<InspectorProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [routesSnapshot, setRoutesSnapshot] = useState<RouteOut | null>(null);
   const [routesLoading, setRoutesLoading] = useState(false);
-  const [summary, setSummary] = useState<InspectorSummary | null>(null);
-  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<InspectorTab>("calendar");
   const [homeLatInput, setHomeLatInput] = useState("");
   const [homeLngInput, setHomeLngInput] = useState("");
   const [homeSaving, setHomeSaving] = useState(false);
@@ -615,25 +599,6 @@ const InspectorRoutes: React.FC = () => {
     }
   };
 
-  // ---- load summary ----
-  const loadSummary = async () => {
-    try {
-      setSummaryError(null);
-      const res = await getJSON<InspectorSummary>("/inspector/reports/inspector");
-      setSummary(res);
-    } catch (e: any) {
-      setSummary(null);
-      setSummaryError(e.message || String(e));
-    }
-  };
-
-  useEffect(() => {
-    if (profile) {
-      loadSummary();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.id]);
-
   // ---- load "My Cases" list (from first file) ----
   useEffect(() => {
     const loadCases = async () => {
@@ -652,10 +617,370 @@ const InspectorRoutes: React.FC = () => {
     loadCases();
   }, [user_id]);
 
-  const flagged = [
-    { id: 342, if: 0.86, ae: 0.78, rank: 0.82 },
-    { id: 118, if: 0.91, ae: 0.74, rank: 0.85 },
-    { id: 507, if: 0.77, ae: 0.81, rank: 0.79 },
+  const calendarCard = (
+    <TodaySchedule
+      inspector={profile}
+      onRoutesChange={setRoutesSnapshot}
+      onRoutesLoadingChange={setRoutesLoading}
+    />
+  );
+
+  const routeCard = (
+    <RouteSummaryCard routes={routesSnapshot} loading={routesLoading} inspector={profile} />
+  );
+
+  const homeCard = (
+    <div className="eco-card">
+      <div className="eco-card-head">
+        <h3>
+          <FaMapMarkedAlt className="eco-icon-sm" /> Home Base
+        </h3>
+      </div>
+      {!profile && (
+        <p className="eco-muted">
+          Sign in as an inspector to manage your profile and home coordinates.
+        </p>
+      )}
+      {profile && (
+        <>
+          <p className="eco-muted">
+            Used for proximity-based suggestions shown to managers. Leave blank if you do not
+            wish to disclose your home location.
+          </p>
+          <label className="block mt-2">
+            Latitude
+            <input
+              className="eco-input mt-1"
+              type="number"
+              step="0.0001"
+              placeholder="33.8938"
+              value={homeLatInput}
+              onChange={(e) => setHomeLatInput(e.target.value)}
+            />
+          </label>
+          <label className="block mt-3">
+            Longitude
+            <input
+              className="eco-input mt-1"
+              type="number"
+              step="0.0001"
+              placeholder="35.5018"
+              value={homeLngInput}
+              onChange={(e) => setHomeLngInput(e.target.value)}
+            />
+          </label>
+          <button className="btn-eco mt-4" onClick={saveHomeBase} disabled={homeSaving}>
+            {homeSaving ? "Saving..." : "Save Home Location"}
+          </button>
+          {homeStatus && <p className="text-green-700 mt-2 text-sm">{homeStatus}</p>}
+          {homeError && <p className="text-red-600 mt-2 text-sm">{homeError}</p>}
+        </>
+      )}
+    </div>
+  );
+
+  const casesCard = (
+    <div className="eco-card inspector-cases">
+      <div className="eco-card-head">
+        <h3>
+          <FaClipboardCheck className="eco-icon-sm" /> My Cases
+        </h3>
+      </div>
+
+      <p className="eco-muted">Move cases across the workflow. Keep notes & attach photos.</p>
+
+      {casesLoading ? (
+        <p>Loading my cases…</p>
+      ) : (
+        <>
+          <div className="eco-kpi-strip">
+            {(["New", "Scheduled", "Visited", "Reported", "Closed"] as const).map((st) => (
+              <div className="eco-kpi glassy" key={st}>
+                <div className="eco-kpi-num">
+                  {myCases.filter((c) => c.status === st).length}
+                </div>
+                <div className="eco-kpi-label">{st}</div>
+              </div>
+            ))}
+          </div>
+
+          {myCases.length > 0 && (
+            <div className="eco-table compact cases-scroll" style={{ marginTop: 12 }}>
+              <div className="eco-thead">
+                <span>Case</span>
+                <span>Status</span>
+                <span>Building</span>
+                <span>Actions</span>
+              </div>
+              {myCases.map((c) => (
+                <React.Fragment key={c.id}>
+                  <div className="eco-row">
+                    <span>#{c.id}</span>
+                    <span>{c.status}</span>
+                    <span>{c.building_id ?? "-"}</span>
+                    <span className="eco-actions" style={{ gap: 6 }}>
+                      <select
+                        className="auth-input"
+                        defaultValue=""
+                        onChange={async (e) => {
+                          const v = e.target.value;
+                          if (!v) return;
+                          await updateCaseStatus(c.id, v);
+                          if (!user_id) return;
+                          const rows = await listCases({ inspector_id: user_id });
+                          setMyCases(rows);
+                          e.currentTarget.value = "";
+                        }}
+                      >
+                        <option value="">Update Status</option>
+                        {["New", "Scheduled", "Visited", "Reported", "Closed"].map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        className="btn-outline sm"
+                        onClick={async () => {
+                          setOpenDetailId(c.id === openDetailId ? null : c.id);
+                          if (c.id !== openDetailId) {
+                            try {
+                              setDetail(await getCaseDetail(c.id));
+                            } catch (err) {
+                              // eslint-disable-next-line no-console
+                              console.error(err);
+                            }
+                          }
+                        }}
+                      >
+                        {openDetailId === c.id ? "Hide Log" : "View Log"}
+                      </button>
+                    </span>
+                  </div>
+                  <div className="eco-row" style={{ background: "#f8faf8" }}>
+                    <span>Note</span>
+                    <span style={{ gridColumn: "span 3" }}>
+                      <input
+                        className="auth-input"
+                        placeholder="Add on-site observation"
+                        value={noteByCase[c.id] || ""}
+                        onChange={(e) =>
+                          setNoteByCase({ ...noteByCase, [c.id]: e.target.value })
+                        }
+                      />
+                      <button
+                        className="btn-eco sm"
+                        onClick={async () => {
+                          const t = (noteByCase[c.id] || "").trim();
+                          if (!t) return;
+                          await addCaseComment(c.id, t, "inspector");
+                          setNoteByCase({ ...noteByCase, [c.id]: "" });
+                          setFlashByCase({
+                            ...flashByCase,
+                            [c.id]: "Note added",
+                          });
+                          setTimeout(
+                            () =>
+                              setFlashByCase((m) => ({
+                                ...m,
+                                [c.id]: "",
+                              })),
+                            2000
+                          );
+                          if (openDetailId === c.id) {
+                            try {
+                              setDetail(await getCaseDetail(c.id));
+                            } catch {
+                              // ignore
+                            }
+                          }
+                        }}
+                      >
+                        Add
+                      </button>
+                    </span>
+                  </div>
+                  <div className="eco-row" style={{ background: "#f8faf8" }}>
+                    <span>Photo</span>
+                    <span style={{ gridColumn: "span 3" }}>
+                      <input
+                        className="auth-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          await uploadCaseAttachment(c.id, file, "inspector");
+                          setFlashByCase({
+                            ...flashByCase,
+                            [c.id]: "Photo uploaded",
+                          });
+                          setTimeout(
+                            () =>
+                              setFlashByCase((m) => ({
+                                ...m,
+                                [c.id]: "",
+                              })),
+                            2000
+                          );
+                        }}
+                      />
+                    </span>
+                  </div>
+                  <div className="eco-row" style={{ background: "#f8faf8" }}>
+                    <span>Meter</span>
+                    <span style={{ gridColumn: "span 3" }}>
+                      <input
+                        className="auth-input"
+                        placeholder="Reading"
+                        value={readingByCase[c.id] || ""}
+                        onChange={(e) =>
+                          setReadingByCase({ ...readingByCase, [c.id]: e.target.value })
+                        }
+                      />
+                      <button
+                        className="btn-outline sm"
+                        onClick={async () => {
+                          const reading = (readingByCase[c.id] || "").trim();
+                          if (!reading) return;
+                          await addMeterReading(c.id, Number(reading));
+                          setReadingByCase({ ...readingByCase, [c.id]: "" });
+                          setFlashByCase({
+                            ...flashByCase,
+                            [c.id]: "Reading logged",
+                          });
+                          setTimeout(
+                            () =>
+                              setFlashByCase((m) => ({
+                                ...m,
+                                [c.id]: "",
+                              })),
+                            2000
+                          );
+                        }}
+                      >
+                        Log
+                      </button>
+                    </span>
+                  </div>
+                  <div className="eco-row" style={{ background: "#f8faf8" }}>
+                    <span>Fraud</span>
+                    <span style={{ gridColumn: "span 3" }}>
+                      <textarea
+                        className="auth-input"
+                        placeholder="Findings"
+                        value={findingsByCase[c.id] || ""}
+                        onChange={(e) =>
+                          setFindingsByCase({ ...findingsByCase, [c.id]: e.target.value })
+                        }
+                      />
+                      <textarea
+                        className="auth-input mt-2"
+                        placeholder="Recommendation"
+                        value={recoByCase[c.id] || ""}
+                        onChange={(e) =>
+                          setRecoByCase({ ...recoByCase, [c.id]: e.target.value })
+                        }
+                      />
+                      <button
+                        className="btn-outline sm mt-2"
+                        onClick={async () => {
+                          const findings = (findingsByCase[c.id] || "").trim();
+                          const recommendation = (recoByCase[c.id] || "").trim();
+                          if (!findings && !recommendation) return;
+                          if (!user_id) {
+                            setFlashByCase({
+                              ...flashByCase,
+                              [c.id]: "Unable to submit report: missing user id",
+                            });
+                            setTimeout(
+                              () =>
+                                setFlashByCase((m) => ({
+                                  ...m,
+                                  [c.id]: "",
+                                })),
+                              2000
+                            );
+                            return;
+                          }
+                          await submitInspectionReport(c.id, {
+                            inspector_id: user_id,
+                            findings,
+                            recommendation,
+                          });
+                          setFindingsByCase({ ...findingsByCase, [c.id]: "" });
+                          setRecoByCase({ ...recoByCase, [c.id]: "" });
+                          setFlashByCase({
+                            ...flashByCase,
+                            [c.id]: "Report submitted",
+                          });
+                          setTimeout(
+                            () =>
+                              setFlashByCase((m) => ({
+                                ...m,
+                                [c.id]: "",
+                              })),
+                            2000
+                          );
+                        }}
+                      >
+                        Submit
+                      </button>
+                    </span>
+                  </div>
+                  {flashByCase[c.id] && (
+                    <div
+                      className="eco-row"
+                      style={{ gridColumn: "span 4", background: "#ecfdf3" }}
+                    >
+                      <span style={{ gridColumn: "span 4" }}>{flashByCase[c.id]}</span>
+                    </div>
+                  )}
+                  {openDetailId === c.id && detail && (
+                    <div
+                      className="eco-row"
+                      style={{ gridColumn: "span 4", background: "#f3f7f3" }}
+                    >
+                      <div className="eco-table compact" style={{ width: "100%" }}>
+                        <div className="eco-thead">
+                          <span>When</span>
+                          <span>Actor</span>
+                          <span>Action</span>
+                          <span>Note</span>
+                        </div>
+                        {detail.activities
+                          ?.slice()
+                          .reverse()
+                          .slice(0, 10)
+                          .map((a: any) => (
+                            <div className="eco-row" key={a.id}>
+                              <span>
+                                {a.created_at ? new Date(a.created_at).toLocaleString() : "-"}
+                              </span>
+                              <span>{a.actor || "-"}</span>
+                              <span>{a.action || "-"}</span>
+                              <span>{a.note || "-"}</span>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          )}
+
+          {myCases.length === 0 && <p className="eco-muted mt-3">No assigned cases yet.</p>}
+        </>
+      )}
+    </div>
+  );
+
+  const tabItems: { id: InspectorTab; label: string; content: React.ReactNode }[] = [
+    { id: "calendar", label: "My Calendar", content: calendarCard },
+    { id: "route", label: "Today's Route", content: routeCard },
+    { id: "home", label: "Home Base", content: homeCard },
+    { id: "cases", label: "My Cases", content: casesCard },
   ];
 
   return (
@@ -679,512 +1004,33 @@ const InspectorRoutes: React.FC = () => {
         </div>
       )}
 
-      <section className="eco-grid">
-        {/* ---- Flagged buildings (shared) ---- */}
-        <div className="eco-card">
-          <div className="eco-card-head">
-            <h3>
-              <FaFlag className="eco-icon-sm" /> Flagged Buildings
-            </h3>
-            <span className="eco-chip">Live</span>
+      <div className="eco-tabs" role="tablist" aria-label="Inspector tools">
+        {tabItems.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`eco-tab ${activeTab === tab.id ? "eco-tab--active" : ""}`}
+            onClick={() => setActiveTab(tab.id)}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="eco-tab-panels">
+        {tabItems.map((tab) => (
+          <div
+            key={tab.id}
+            className={`eco-tab-panel ${activeTab === tab.id ? "eco-tab-panel--active" : ""}`}
+            role="tabpanel"
+            hidden={activeTab !== tab.id}
+          >
+            {tab.content}
           </div>
-
-          <p className="eco-muted">
-            Buildings flagged by anomaly models (Isolation Forest / Autoencoder).
-            Filter by district or score to focus your route.
-          </p>
-
-          <div className="eco-table compact">
-            <div className="eco-thead">
-              <span>Building</span>
-              <span>IF</span>
-              <span>AE</span>
-              <span>Rank</span>
-              <span>Actions</span>
-            </div>
-
-            {flagged.map((r) => (
-              <div className="eco-row" key={r.id}>
-                <span>#B{r.id}</span>
-                <span>{r.if.toFixed(2)}</span>
-                <span>{r.ae.toFixed(2)}</span>
-                <span>
-                  <b>{r.rank.toFixed(2)}</b>
-                </span>
-                <span className="eco-actions">
-                  <Link to={`/buildings/${r.id}`} className="btn-eco sm">
-                    Profile
-                  </Link>
-                  <Link to={`/cases/new?building=${r.id}`} className="btn-outline sm">
-                    Create Case
-                  </Link>
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ---- Today's schedule / calendar ---- */}
-        <TodaySchedule
-          inspector={profile}
-          onRoutesChange={setRoutesSnapshot}
-          onRoutesLoadingChange={setRoutesLoading}
-          onChanged={loadSummary}
-        />
-
-        {/* ---- Route summary card ---- */}
-        <RouteSummaryCard
-          routes={routesSnapshot}
-          loading={routesLoading}
-          inspector={profile}
-        />
-
-        {/* ---- Inspector profile / home base ---- */}
-        <div className="eco-card">
-          <div className="eco-card-head">
-            <h3>
-              <FaMapMarkedAlt className="eco-icon-sm" /> Home Base
-            </h3>
-          </div>
-          {!profile && (
-            <p className="eco-muted">
-              Sign in as an inspector to manage your profile and home coordinates.
-            </p>
-          )}
-          {profile && (
-            <>
-              <p className="eco-muted">
-                Used for proximity-based suggestions shown to managers. Leave blank if
-                you do not wish to disclose your home location.
-              </p>
-              <label className="block mt-2">
-                Latitude
-                <input
-                  className="eco-input mt-1"
-                  type="number"
-                  step="0.0001"
-                  placeholder="33.8938"
-                  value={homeLatInput}
-                  onChange={(e) => setHomeLatInput(e.target.value)}
-                />
-              </label>
-              <label className="block mt-3">
-                Longitude
-                <input
-                  className="eco-input mt-1"
-                  type="number"
-                  step="0.0001"
-                  placeholder="35.5018"
-                  value={homeLngInput}
-                  onChange={(e) => setHomeLngInput(e.target.value)}
-                />
-              </label>
-              <button
-                className="btn-eco mt-4"
-                onClick={saveHomeBase}
-                disabled={homeSaving}
-              >
-                {homeSaving ? "Saving..." : "Save Home Location"}
-              </button>
-              {homeStatus && (
-                <p className="text-green-700 mt-2 text-sm">{homeStatus}</p>
-              )}
-              {homeError && <p className="text-red-600 mt-2 text-sm">{homeError}</p>}
-            </>
-          )}
-        </div>
-
-        {/* ---- Performance summary ---- */}
-        <div className="eco-card">
-          <div className="eco-card-head">
-            <h3>
-              <FaClipboardCheck className="eco-icon-sm" /> My Performance
-            </h3>
-          </div>
-          {!summary && !summaryError && <p className="eco-muted">Loading summary…</p>}
-          {summaryError && <div className="eco-error">{summaryError}</div>}
-          {summary && (
-            <>
-              <div className="eco-kpi-strip">
-                <div className="eco-kpi glassy">
-                  <div className="eco-kpi-num">{summary.visits_today}</div>
-                  <div className="eco-kpi-label">Visits today</div>
-                </div>
-                <div className="eco-kpi glassy">
-                  <div className="eco-kpi-num">{summary.pending}</div>
-                  <div className="eco-kpi-label">Pending</div>
-                </div>
-                <div className="eco-kpi glassy">
-                  <div className="eco-kpi-num">{summary.accepted}</div>
-                  <div className="eco-kpi-label">Confirmed</div>
-                </div>
-                <div className="eco-kpi glassy">
-                  <div className="eco-kpi-num">{summary.closed_cases}</div>
-                  <div className="eco-kpi-label">Cases closed</div>
-                </div>
-              </div>
-              <p className="eco-muted">
-                Fraud confirmations logged: <strong>{summary.fraud_detected}</strong>
-              </p>
-            </>
-          )}
-        </div>
-
-        {/* ---- My Cases panel (from the first file) ---- */}
-        <div className="eco-card inspector-cases">
-          <div className="eco-card-head">
-            <h3>
-              <FaClipboardCheck className="eco-icon-sm" /> My Cases
-            </h3>
-          </div>
-
-          <p className="eco-muted">
-            Move cases across the workflow. Keep notes & attach photos.
-          </p>
-
-          {casesLoading ? (
-            <p>Loading my cases…</p>
-          ) : (
-            <>
-              <div className="eco-kpi-strip">
-                {(["New", "Scheduled", "Visited", "Reported", "Closed"] as const).map((st) => (
-                  <div className="eco-kpi glassy" key={st}>
-                    <div className="eco-kpi-num">
-                      {myCases.filter((c) => c.status === st).length}
-                    </div>
-                    <div className="eco-kpi-label">{st}</div>
-                  </div>
-                ))}
-              </div>
-
-              {myCases.length > 0 && (
-                <div
-                  className="eco-table compact cases-scroll"
-                  style={{ marginTop: 12 }}
-                >
-                  <div className="eco-thead">
-                    <span>Case</span>
-                    <span>Status</span>
-                    <span>Building</span>
-                    <span>Actions</span>
-                  </div>
-                  {myCases.map((c) => (
-                    <React.Fragment key={c.id}>
-                      <div className="eco-row">
-                        <span>#{c.id}</span>
-                        <span>{c.status}</span>
-                        <span>{c.building_id ?? "-"}</span>
-                        <span className="eco-actions" style={{ gap: 6 }}>
-                          <select
-                            className="auth-input"
-                            defaultValue=""
-                            onChange={async (e) => {
-                              const v = e.target.value;
-                              if (!v) return;
-                              await updateCaseStatus(c.id, v);
-                              if (!user_id) return;
-                              const rows = await listCases({ inspector_id: user_id });
-                              setMyCases(rows);
-                              e.currentTarget.value = "";
-                            }}
-                          >
-                            <option value="">Update Status</option>
-                            {["New", "Scheduled", "Visited", "Reported", "Closed"].map((s) => (
-                              <option key={s} value={s}>
-                                {s}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            className="btn-outline sm"
-                            onClick={async () => {
-                              setOpenDetailId(c.id === openDetailId ? null : c.id);
-                              if (c.id !== openDetailId) {
-                                try {
-                                  setDetail(await getCaseDetail(c.id));
-                                } catch (e) {
-                                  // eslint-disable-next-line no-console
-                                  console.error(e);
-                                }
-                              }
-                            }}
-                          >
-                            {openDetailId === c.id ? "Hide Log" : "View Log"}
-                          </button>
-                        </span>
-                      </div>
-                      <div className="eco-row" style={{ background: "#f8faf8" }}>
-                        <span>Note</span>
-                        <span style={{ gridColumn: "span 3" }}>
-                          <input
-                            className="auth-input"
-                            placeholder="Add on-site observation"
-                            value={noteByCase[c.id] || ""}
-                            onChange={(e) =>
-                              setNoteByCase({ ...noteByCase, [c.id]: e.target.value })
-                            }
-                          />
-                          <button
-                            className="btn-eco sm"
-                            onClick={async () => {
-                              const t = (noteByCase[c.id] || "").trim();
-                              if (!t) return;
-                              await addCaseComment(c.id, t, "inspector");
-                              setNoteByCase({ ...noteByCase, [c.id]: "" });
-                              setFlashByCase({
-                                ...flashByCase,
-                                [c.id]: "Note added",
-                              });
-                              setTimeout(
-                                () =>
-                                  setFlashByCase((m) => ({
-                                    ...m,
-                                    [c.id]: "",
-                                  })),
-                                2000
-                              );
-                              if (openDetailId === c.id) {
-                                try {
-                                  setDetail(await getCaseDetail(c.id));
-                                } catch {
-                                  // ignore
-                                }
-                              }
-                            }}
-                          >
-                            Add
-                          </button>
-                        </span>
-                      </div>
-                      <div className="eco-row" style={{ background: "#f8faf8" }}>
-                        <span>Photo</span>
-                        <span style={{ gridColumn: "span 3" }}>
-                          <input
-                            id={`upload-${c.id}`}
-                            type="file"
-                            accept="image/*"
-                            style={{ display: "none" }}
-                            onChange={async (e) => {
-                              const f = e.target.files?.[0];
-                              if (!f) return;
-                              await uploadCaseAttachment(c.id, f, "inspector");
-                              setFlashByCase({
-                                ...flashByCase,
-                                [c.id]: "Photo uploaded",
-                              });
-                              setTimeout(
-                                () =>
-                                  setFlashByCase((m) => ({
-                                    ...m,
-                                    [c.id]: "",
-                                  })),
-                                2000
-                              );
-                              if (openDetailId === c.id) {
-                                try {
-                                  setDetail(await getCaseDetail(c.id));
-                                } catch {
-                                  // ignore
-                                }
-                              }
-                              (e.currentTarget as HTMLInputElement).value = "";
-                            }}
-                          />
-                          <button
-                            className="btn-outline sm"
-                            onClick={() =>
-                              (document.getElementById(
-                                `upload-${c.id}`
-                              ) as HTMLInputElement)?.click()
-                            }
-                          >
-                            Upload Photo
-                          </button>
-                          {flashByCase[c.id] && (
-                            <span
-                              style={{
-                                marginLeft: 8,
-                                color: "#2e7d32",
-                                fontWeight: 600,
-                              }}
-                            >
-                              {flashByCase[c.id]}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      <div className="eco-row" style={{ background: "#f8faf8" }}>
-                        <span>Meter</span>
-                        <span style={{ gridColumn: "span 3" }}>
-                          <input
-                            className="auth-input"
-                            placeholder="e.g., 12873"
-                            value={readingByCase[c.id] || ""}
-                            onChange={(e) =>
-                              setReadingByCase({
-                                ...readingByCase,
-                                [c.id]: e.target.value,
-                              })
-                            }
-                          />
-                          <button
-                            className="btn-outline sm"
-                            onClick={async () => {
-                              const val = parseFloat(readingByCase[c.id]);
-                              if (Number.isNaN(val)) return;
-                              await addMeterReading(c.id, val, "kWh", "inspector");
-                              setReadingByCase({
-                                ...readingByCase,
-                                [c.id]: "",
-                              });
-                              setFlashByCase({
-                                ...flashByCase,
-                                [c.id]: "Reading saved",
-                              });
-                              setTimeout(
-                                () =>
-                                  setFlashByCase((m) => ({
-                                    ...m,
-                                    [c.id]: "",
-                                  })),
-                                2000
-                              );
-                              if (openDetailId === c.id) {
-                                try {
-                                  setDetail(await getCaseDetail(c.id));
-                                } catch {
-                                  // ignore
-                                }
-                              }
-                            }}
-                          >
-                            Save
-                          </button>
-                        </span>
-                      </div>
-                      {openDetailId === c.id && detail && (
-                        <div
-                          className="eco-row"
-                          style={{ gridColumn: "span 4", background: "#f3f7f3" }}
-                        >
-                          <div
-                            className="eco-table compact"
-                            style={{ width: "100%" }}
-                          >
-                            <div className="eco-thead">
-                              <span>When</span>
-                              <span>Actor</span>
-                              <span>Action</span>
-                              <span>Note</span>
-                            </div>
-                            {detail.activities
-                              ?.slice()
-                              .reverse()
-                              .slice(0, 10)
-                              .map((a: any) => (
-                                <div className="eco-row" key={a.id}>
-                                  <span>
-                                    {new Date(a.created_at).toLocaleString()}
-                                  </span>
-                                  <span>{a.actor}</span>
-                                  <span>{a.action}</span>
-                                  <span>{a.note}</span>
-                                </div>
-                              ))}
-                            <div className="eco-row" style={{ background: "#fff" }}>
-                              <span>Findings</span>
-                              <span style={{ gridColumn: "span 3" }}>
-                                <textarea
-                                  className="auth-input"
-                                  rows={2}
-                                  placeholder="On-site observations"
-                                  value={findingsByCase[c.id] || ""}
-                                  onChange={(e) =>
-                                    setFindingsByCase({
-                                      ...findingsByCase,
-                                      [c.id]: e.target.value,
-                                    })
-                                  }
-                                />
-                              </span>
-                            </div>
-                            <div className="eco-row" style={{ background: "#fff" }}>
-                              <span>Recommendation</span>
-                              <span style={{ gridColumn: "span 3" }}>
-                                <textarea
-                                  className="auth-input"
-                                  rows={2}
-                                  placeholder="Recommended action"
-                                  value={recoByCase[c.id] || ""}
-                                  onChange={(e) =>
-                                    setRecoByCase({
-                                      ...recoByCase,
-                                      [c.id]: e.target.value,
-                                    })
-                                  }
-                                />
-                                <button
-                                  className="btn-eco sm"
-                                  style={{ marginTop: 6 }}
-                                  onClick={async () => {
-                                    if (!user_id) return;
-                                    const f = (findingsByCase[c.id] || "").trim();
-                                    const r = (recoByCase[c.id] || "").trim();
-                                    if (!f && !r) return;
-                                    await submitInspectionReport(
-                                      c.id,
-                                      user_id,
-                                      f,
-                                      r
-                                    );
-                                    setFindingsByCase({
-                                      ...findingsByCase,
-                                      [c.id]: "",
-                                    });
-                                    setRecoByCase({
-                                      ...recoByCase,
-                                      [c.id]: "",
-                                    });
-                                    setFlashByCase({
-                                      ...flashByCase,
-                                      [c.id]: "Report submitted",
-                                    });
-                                    setTimeout(
-                                      () =>
-                                        setFlashByCase((m) => ({
-                                          ...m,
-                                          [c.id]: "",
-                                        })),
-                                      2000
-                                    );
-                                    try {
-                                      setDetail(await getCaseDetail(c.id));
-                                    } catch {
-                                      // ignore
-                                    }
-                                  }}
-                                >
-                                  Submit Report
-                                </button>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-
-          <div className="eco-actions">
-            <Link to="/inspector" className="btn-eco">
-              Open Case Board
-            </Link>
-          </div>
-        </div>
-      </section>
+        ))}
+      </div>
     </div>
   );
 };

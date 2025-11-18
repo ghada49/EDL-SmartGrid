@@ -7,7 +7,7 @@ const CitizenPortal: React.FC = () => {
     <div className="ms-home">
 
       {/* Optional small hero for context */}
-      <section className="ms-hero" style={{ marginTop: 28 }}>
+      <section className="ms-hero">
         <h1>Citizen Portal</h1>
         <p>Report issues, track tickets, and estimate expected electricity usage.</p>
       </section>
@@ -28,7 +28,7 @@ const CitizenPortal: React.FC = () => {
             <FaClipboardList />
           </div>
           <h3>Track My Ticket</h3>
-          <p>Follow status: New → In Review → Scheduled → Closed.</p>
+          <p>Follow status: New → In Review → Closed.</p>
           <Link to="/tickets/track" className="ms-card__link">Track</Link>
         </div>
 

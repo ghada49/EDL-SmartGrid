@@ -43,17 +43,18 @@ class Ticket(Base):
     __tablename__ = "tickets"
 
     id = Column(Integer, primary_key=True, index=True)
-    # Match users.id which is a String (UUID)
+
+    # Add this:
     user_id = Column(String, ForeignKey("users.id"), nullable=False)
 
     subject = Column(String, nullable=False)
     description = Column(String, nullable=True)
-
-    # you can use "New" or "open" depending on how the frontend expects it
     status = Column(String, default="New")
-
     photo_path = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+
 
 
 # ---------- Model Versions ----------

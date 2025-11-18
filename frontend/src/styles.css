@@ -450,8 +450,9 @@ body {
 
 /* Main app container (Inspector / Manager / Citizen) */
 .ms-home {
-  background: #ffffff;
+  background: #f3f6fb;
   min-height: 100vh;
+  padding-top: 48px;
 }
 
 /* Full-width content area helper */
@@ -466,7 +467,7 @@ body {
 .ms-hero {
   text-align: center;
   max-width: 980px;
-  margin: 40px auto 18px;
+  margin: 0 auto 18px;
   padding: 0 18px;
 }
 
@@ -1018,6 +1019,23 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
 }
 
+.eco-tab-panels {
+  width: 100%;
+}
+
+.eco-tab-panel {
+  display: none;
+  width: 100%;
+}
+
+.eco-tab-panel--active {
+  display: block;
+}
+
+.eco-tab-panel > .eco-card {
+  margin: 0 auto 1.5rem;
+}
+
 /* =========================
    Feedback & Forms
    ========================= */
@@ -1130,6 +1148,7 @@ body > header:first-of-type {
 .ms-home {
   background: #f3f6fb;      /* very light neutral instead of pure white */
   min-height: 100vh;
+  padding-top: 48px;
 }
 
 /* =========================
@@ -1144,6 +1163,10 @@ body > header:first-of-type {
     #f6fbf8;  /* base */
   color: #1b5e20;
   padding-bottom: 40px;
+}
+
+.ms-home.eco-page {
+  padding-top: 0;
 }
 
 /* Hero card – make it look like a centered white panel */
