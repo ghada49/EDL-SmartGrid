@@ -6,9 +6,18 @@ import {
   FeedbackLabelIn,
 } from '../api/feedback';
 
-const FeedbackPanel: React.FC = () => {
+type FeedbackPanelProps = {
+  embeddedCaseId?: number;
+  showLogs?: boolean;
+};
+
+const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
+  embeddedCaseId,
+  showLogs = true,
+}) => {
+  const isEmbedded = embeddedCaseId !== undefined;
   // form state
-  const [caseId, setCaseId] = useState<number | ''>('');
+  const [caseId, setCaseId] = useState<number | ''>(embeddedCaseId ?? '');
   const [label, setLabel] = useState<'fraud' | 'non_fraud' | 'uncertain'>('fraud');
   const [source, setSource] = useState<string>('manager_ui');
   const [notes, setNotes] = useState<string>('');
@@ -36,24 +45,30 @@ const FeedbackPanel: React.FC = () => {
     }
   }, [from, to]);
 
-  useEffect(() => { load(); }, [load]); // first load + refilter
+  useEffect(() => {
+    if (embeddedCaseId !== undefined) {
+      setCaseId(embeddedCaseId);
+    }
+  }, [embeddedCaseId]);
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (caseId === '') return;
+  useEffect(() => {
+    if (showLogs) {
+      load();
+    }
+  }, [load, showLogs]); // first load + refilter
+
+  const performSubmit = async (targetCaseId: number, chosenLabel: typeof label, customNotes?: string) => {
     setPosting(true); setError(null);
     try {
       const payload: FeedbackLabelIn = {
-        case_id: Number(caseId),
-        label,
+        case_id: targetCaseId,
+        label: chosenLabel,
         source,
-        notes: notes || undefined,
+        notes: customNotes || undefined,
       };
       await addFeedbackLabel(payload);
-      // Clear notes but keep case id for speed
-      setNotes('');
       // Refresh table
-      await load();
+      if (showLogs) await load();
     } catch (e: any) {
       setError(e.message || 'Failed to submit feedback');
     } finally {
@@ -61,10 +76,47 @@ const FeedbackPanel: React.FC = () => {
     }
   };
 
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (caseId === '') return;
+    await performSubmit(Number(caseId), label, notes || undefined);
+    setNotes('');
+  };
+
+  const handleEmbeddedSelect = async (value: typeof label) => {
+    setLabel(value);
+    if (!embeddedCaseId) return;
+    await performSubmit(embeddedCaseId, value);
+  };
+
   const handleRefresh = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     load();
   };
+
+  if (isEmbedded) {
+    return (
+      <div className="eco-card">
+        <div className="eco-card-head">
+          <h3>Feedback</h3>
+        </div>
+        <div className="eco-actions" style={{ alignItems: 'center' }}>
+          <label style={{ fontWeight: 600 }}>Label</label>
+          <select
+            className="auth-input"
+            value={label}
+            onChange={(e) => handleEmbeddedSelect(e.target.value as typeof label)}
+            disabled={posting}
+          >
+            <option value="fraud">fraud</option>
+            <option value="non_fraud">non_fraud</option>
+            <option value="uncertain">uncertain</option>
+          </select>
+        </div>
+        {error && <div className="eco-error" style={{ marginTop: 12 }}>{error}</div>}
+      </div>
+    );
+  }
 
   return (
     <div className="eco-card">
@@ -111,52 +163,56 @@ const FeedbackPanel: React.FC = () => {
         </div>
       </form>
 
-      {/* Filters */}
-      <div className="eco-grid two" style={{ marginTop: 16 }}>
-        <div>
-          <label>From</label>
-          <input type="date" value={from} onChange={e => setFrom(e.target.value)} />
-        </div>
-        <div>
-          <label>To</label>
-          <input type="date" value={to} onChange={e => setTo(e.target.value)} />
-        </div>
-        <div>
-          <button
-            type="button"
-            className="btn-outline"
-            onClick={handleRefresh}
-            disabled={loading}
-          >
-            {loading ? 'Loading…' : 'Refresh Logs'}
-          </button>
-        </div>
-      </div>
-
-      {error && <div className="eco-error">{error}</div>}
-
-      {/* Logs table */}
-      <div className="eco-table compact" style={{ marginTop: 16 }}>
-        <div className="eco-thead">
-          <span>Time</span>
-          <span>Case</span>
-          <span>Label</span>
-          <span>Source</span>
-          <span>Notes</span>
-        </div>
-        {logs.map(r => (
-          <div className="eco-row" key={r.id}>
-            <span>{new Date(r.created_at).toLocaleString()}</span>
-            <span>{r.case_id}</span>
-            <span>{r.label}</span>
-            <span>{r.source || '—'}</span>
-            <span>{r.notes || '—'}</span>
+      {showLogs && (
+        <>
+          {/* Filters */}
+          <div className="eco-grid two" style={{ marginTop: 16 }}>
+            <div>
+              <label>From</label>
+              <input type="date" value={from} onChange={e => setFrom(e.target.value)} />
+            </div>
+            <div>
+              <label>To</label>
+              <input type="date" value={to} onChange={e => setTo(e.target.value)} />
+            </div>
+            <div>
+              <button
+                type="button"
+                className="btn-outline"
+                onClick={handleRefresh}
+                disabled={loading}
+              >
+                {loading ? 'Loading…' : 'Refresh Logs'}
+              </button>
+            </div>
           </div>
-        ))}
-        {(!loading && logs.length === 0) && (
-          <div className="eco-row"><span>No feedback yet.</span></div>
-        )}
-      </div>
+
+          {error && <div className="eco-error">{error}</div>}
+
+          {/* Logs table */}
+          <div className="eco-table compact" style={{ marginTop: 16 }}>
+            <div className="eco-thead">
+              <span>Time</span>
+              <span>Case</span>
+              <span>Label</span>
+              <span>Source</span>
+              <span>Notes</span>
+            </div>
+            {logs.map(r => (
+              <div className="eco-row" key={r.id}>
+                <span>{new Date(r.created_at).toLocaleString()}</span>
+                <span>{r.case_id}</span>
+                <span>{r.label}</span>
+                <span>{r.source || '—'}</span>
+                <span>{r.notes || '—'}</span>
+              </div>
+            ))}
+            {(!loading && logs.length === 0) && (
+              <div className="eco-row"><span>No feedback yet.</span></div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

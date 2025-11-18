@@ -138,7 +138,6 @@ const ManagerDashboard: React.FC = () => {
     | "Scheduling"
     | "Suggest & Assign"
     | "Reporting"
-    | "Feedback"
     | "Tickets"
     | "Case Management"
   >("Overview");
@@ -162,7 +161,6 @@ const ManagerDashboard: React.FC = () => {
             "Suggest & Assign",
             "Scheduling",
             "Reporting",
-            "Feedback",
             "Tickets",
             "Case Management",
           ]}
@@ -175,7 +173,6 @@ const ManagerDashboard: React.FC = () => {
         {tab === "Suggest & Assign" && <SuggestAssignTab />}
         {tab === "Scheduling" && <SchedulingTab />}
         {tab === "Reporting" && <ReportingTab />}
-        {tab === "Feedback" && <FeedbackPanel />}
         {tab === "Tickets" && <TicketManagementPanel />}
 
         {/* ================= CASE MANAGEMENT TAB ================= */}
@@ -389,47 +386,10 @@ const ManagerDashboard: React.FC = () => {
                           </ul>
                         </div>
                       )}
-                      <div className="eco-actions">
-                        <button
-                          className="btn-outline sm"
-                          onClick={async () => {
-                            await reviewCase(detailId, r.id, "Approve_Fraud");
-                            setDetail(await getCaseDetail(detailId));
-                          }}
-                        >
-                          Approve Fraud
-                        </button>
-
-                        <button
-                          className="btn-outline sm"
-                          onClick={async () => {
-                            await reviewCase(detailId, r.id, "Approve_NoIssue");
-                            setDetail(await getCaseDetail(detailId));
-                          }}
-                        >
-                          Approve No Issue
-                        </button>
-
-                        <button
-                          className="btn-outline sm"
-                          onClick={async () => {
-                            await reviewCase(detailId, r.id, "Recheck");
-                            setDetail(await getCaseDetail(detailId));
-                          }}
-                        >
-                          Recheck
-                        </button>
-
-                        <button
-                          className="btn-outline sm"
-                          onClick={async () => {
-                            await reviewCase(detailId, r.id, "Reject");
-                            setDetail(await getCaseDetail(detailId));
-                          }}
-                        >
-                          Reject
-                        </button>
-                      </div>
+                      <FeedbackPanel
+                        embeddedCaseId={detailId ?? undefined}
+                        showLogs={false}
+                      />
                     </div>
                   );
                 })()
