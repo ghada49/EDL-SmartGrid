@@ -10,7 +10,13 @@ import {
 
 import { Tabs } from "../components/Tabs";
 import { uploadDataset, getDatasetHistory, DQ } from "../api/ops";
-import { startTraining, getTrainingStatus } from "../api/opsTrain";
+import {
+  startTraining,
+  getTrainingStatus,
+  getCurrentModelCard,
+  getModelHistory,
+} from "../api/opsTrain";
+import { API_BASE_URL } from "../api/client";
 
 // --- Local helper types for dataset drift & history ---
 type DriftRow = {
@@ -55,6 +61,7 @@ const AdminDashboard: React.FC = () => {
 
   const canAdminMakeManager = (u: UserRow) =>
     myRole === "Admin" && u.role === "Citizen";
+
   const canDemote = (u: UserRow) =>
     myRole === "Admin" && (u.role === "Inspector" || u.role === "Manager");
 
@@ -80,13 +87,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const [mode, setMode] = useState<"fast" | "moderate" | "slow" | "very_slow">(
-    "moderate"
-  );
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [status, setStatus] = useState<any>(null);
-  const [isStartingTraining, setIsStartingTraining] = useState(false);
-
   const promoteToManager = async (u: UserRow) => {
     if (busy) return;
     setBusy(u.id);
@@ -98,16 +98,47 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // ───── Training state ─────
+  const [mode, setMode] = useState<"fast" | "moderate" | "slow" | "very_slow">(
+    "moderate"
+  );
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [status, setStatus] = useState<any>(null);
+  const [isStartingTraining, setIsStartingTraining] = useState(false);
+
+  // Model registry (current + history)
+  const [modelCard, setModelCard] = useState<any | null>(null);
+  const [modelHistory, setModelHistory] = useState<any[]>([]);
+
   // ───── Dataset Upload / Drift / History ─────
   const [uploadDQ, setUploadDQ] = useState<DQ | null>(null);
   const [drift, setDrift] = useState<DriftRow[]>([]);
   const [history, setHistory] = useState<DatasetHistoryRow[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
-  // ───── Tabs (for design only) ─────
+  // ───── Tabs ─────
   const [tab, setTab] = useState<"Overview" | "Users" | "Data & Models" | "Audit">(
     "Overview"
   );
+  const [zoomedImg, setZoomedImg] = useState<string | null>(null);
+  // ───── Initial load of model card + model history ─────
+  useEffect(() => {
+    const loadModelInfo = async () => {
+      try {
+        const card = await getCurrentModelCard();
+        setModelCard(card);
+      } catch (err) {
+        console.warn("No current model card yet:", err);
+      }
+      try {
+        const hist = await getModelHistory();
+        setModelHistory(hist || []);
+      } catch (err) {
+        console.warn("Failed to load model history:", err);
+      }
+    };
+    loadModelInfo();
+  }, []);
 
   // ───── Training job polling ─────
   useEffect(() => {
@@ -117,18 +148,26 @@ const AdminDashboard: React.FC = () => {
 
     const tick = async () => {
       try {
-        const res = await getTrainingStatus(jobId);
+        const data = await getTrainingStatus(jobId);
         if (!cancelled) {
-          setStatus(res);
+          setStatus(data);
+          // When job completes, refresh model card + history
+          if (data.status === "completed") {
+            try {
+              const card = await getCurrentModelCard();
+              setModelCard(card);
+              const hist = await getModelHistory();
+              setModelHistory(hist || []);
+            } catch (err) {
+              console.error("Failed to refresh model info after training:", err);
+            }
+          }
         }
       } catch (err) {
-        if (!cancelled) {
-          console.error("Failed to fetch training status:", err);
-        }
+        if (!cancelled) console.error("Failed to fetch training status:", err);
       }
     };
 
-    // initial fetch + polling
     tick();
     const id = window.setInterval(tick, 3000);
 
@@ -151,19 +190,17 @@ const AdminDashboard: React.FC = () => {
     return name.includes(q) || email.includes(q);
   });
 
-  // ───── Training handler (used only in Data & Models tab) ─────
+  // ───── Training handler ─────
   const handleStartTraining = async () => {
-  if (isStartingTraining) return;
-  try {
-    setIsStartingTraining(true);
-    setStatus({ status: "queued" });
+    if (isStartingTraining) return;
+    try {
+      setIsStartingTraining(true);
+      setStatus({ status: "queued" });
 
-    const res = await startTraining(mode);
-    setJobId(res.job_id);   // <-- correct
-    setStatus({ status: "queued" });
-
-  } catch (err: any) {
-
+      const res = await startTraining(mode); // { job_id, status, mode }
+      setJobId(res.job_id);
+      setStatus({ status: "queued" });
+    } catch (err: any) {
       console.error("Failed to start training:", err);
       setStatus({
         status: "failed",
@@ -173,35 +210,11 @@ const AdminDashboard: React.FC = () => {
       setIsStartingTraining(false);
     }
   };
-  // polling effect
-useEffect(() => {
-  if (!jobId) return;
 
-  let cancelled = false;
-
-  const tick = async () => {
-    try {
-      const data = await getTrainingStatus(jobId);
-      if (!cancelled) setStatus(data);
-    } catch (err) {
-      if (!cancelled) console.error("Failed to fetch training status:", err);
-    }
-  };
-
-  tick();
-  const id = window.setInterval(tick, 3000);
-
-  return () => {
-    cancelled = true;
-    window.clearInterval(id);
-  };
-}, [jobId]);
   return (
     <div className="ms-home eco-page">
       <div className="page-shell">
-        {/* content (header, tabs, sections...) */}
-
-        {/* ── Hero header (same style as Manager) ── */}
+        {/* ── Hero header ── */}
         <header className="eco-hero">
           <h1 className="eco-title">Admin Console</h1>
           <p className="eco-sub">
@@ -210,14 +223,14 @@ useEffect(() => {
           </p>
         </header>
 
-        {/* ── Tabs strip (design, light behavior) ── */}
+        {/* ── Tabs strip ── */}
         <Tabs
           tabs={["Overview", "Users", "Data & Models", "Audit"]}
           active={tab}
           onChange={(t) => setTab(t as any)}
         />
 
-        {/* ── KPI strip (purely visual) ── */}
+        {/* ── KPI strip ── */}
         <section className="eco-kpi-strip">
           <div className="eco-kpi glassy">
             <div className="eco-kpi-num">{users.length}</div>
@@ -237,10 +250,10 @@ useEffect(() => {
           </div>
         </section>
 
-        {/* ── Main grid, similar to Manager ── */}
-        <section className="eco-grid two">
-          {/* LEFT COLUMN: depends on tab */}
-          <div className="eco-card">
+        {/* ── Main grid ── */}
+        <section className="eco-main-panel">
+          <div className="eco-card eco-card--full">
+            {/* ───────── Overview TAB ───────── */}
             {tab === "Overview" && (
               <>
                 <div className="eco-card-head">
@@ -253,14 +266,13 @@ useEffect(() => {
               </>
             )}
 
+            {/* ───────── Users TAB ───────── */}
             {tab === "Users" && (
               <>
                 <div className="eco-card-head">
                   <h3>
                     <FaShieldAlt className="eco-icon-sm" /> User Management
                   </h3>
-
-                  {/* 🔍 Search box */}
                   <input
                     type="text"
                     placeholder="Search by name or email"
@@ -325,8 +337,10 @@ useEffect(() => {
               </>
             )}
 
+            {/* ───────── Data & Models TAB ───────── */}
             {tab === "Data & Models" && (
               <>
+                {/* Dataset upload */}
                 <div className="eco-card-head">
                   <h3>
                     <FaDatabase className="eco-icon-sm" /> Dataset Upload
@@ -373,7 +387,7 @@ useEffect(() => {
                             const hist = await getDatasetHistory();
                             setHistory(hist);
                           } catch {
-                            // history optional
+                            // optional
                           }
 
                           try {
@@ -418,6 +432,20 @@ useEffect(() => {
                   >
                     {showHistory ? "Hide History" : "View History"}
                   </button>
+                  {zoomedImg && (
+  <div
+    className="eco-lightbox"
+    onClick={() => setZoomedImg(null)}
+  >
+    <div
+      className="eco-lightbox-inner"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <img src={zoomedImg} alt="Zoomed diagnostic plot" />
+    </div>
+  </div>
+)}
+
                 </div>
 
                 {/* Data Quality */}
@@ -457,7 +485,7 @@ useEffect(() => {
                   </div>
                 )}
 
-                {/* History */}
+                {/* Dataset history */}
                 {showHistory && history.length > 0 && (
                   <div className="eco-table compact" style={{ marginTop: 12 }}>
                     <div className="eco-thead">
@@ -481,6 +509,114 @@ useEffect(() => {
                   </div>
                 )}
 
+                {/* ───── Model Diagnostics (static plots) ───── */}
+                {modelCard && (
+                  <div
+                    style={{
+                      marginTop: 24,
+                      paddingTop: 16,
+                      borderTop: "1px solid #e0e0e0",
+                    }}
+                  >
+                    <h4 style={{ marginBottom: 8 }}>Model diagnostics</h4>
+                    <p className="eco-muted" style={{ marginBottom: 16 }}>
+                      Static visuals from the latest training job to help
+                      interpret anomaly separation and method quality.
+                    </p>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(260px, 1fr))",
+                        gap: 16,
+                      }}
+                    >
+                      {/* PCA scatter */}
+<div className="glassy eco-card" style={{ padding: 12 }}>
+  <h5 style={{ marginBottom: 6 }}>PCA – Normal vs Anomalies</h5>
+  <p
+    className="eco-muted"
+    style={{ fontSize: "0.8rem", marginBottom: 8 }}
+  >
+    2-D projection of latent features. Red points are
+    flagged anomalies; blue are normal buildings.
+  </p>
+  <img
+    src={`${API_BASE_URL}/static/current_pca_fused.png`}
+    alt="PCA projection of fused model"
+    onClick={() =>
+      setZoomedImg(`${API_BASE_URL}/static/current_pca_fused.png`)
+    }
+    style={{
+      width: "100%",
+      height: "220px",
+      objectFit: "contain",
+      borderRadius: 8,
+      cursor: "zoom-in",
+    }}
+  />
+</div>
+
+{/* Fused histogram */}
+<div className="glassy eco-card" style={{ padding: 12 }}>
+  <h5 style={{ marginBottom: 6 }}>Fused rank distribution</h5>
+  <p
+    className="eco-muted"
+    style={{ fontSize: "0.8rem", marginBottom: 8 }}
+  >
+    Distribution of the fused anomaly score. The cutoff
+    defines which fraction is flagged.
+  </p>
+  <img
+    src={`${API_BASE_URL}/static/current_fused_hist.png`}
+    alt="Histogram of fused rank"
+    onClick={() =>
+      setZoomedImg(`${API_BASE_URL}/static/current_fused_hist.png`)
+    }
+    style={{
+      width: "100%",
+      height: "220px",
+      objectFit: "contain",
+      borderRadius: 8,
+      cursor: "zoom-in",
+    }}
+  />
+</div>
+
+{/* Method metrics */}
+<div className="glassy eco-card" style={{ padding: 12 }}>
+  <h5 style={{ marginBottom: 6 }}>Method metrics</h5>
+  <p
+    className="eco-muted"
+    style={{ fontSize: "0.8rem", marginBottom: 8 }}
+  >
+    Silhouette, Dunn, and Davies–Bouldin scores per
+    method and for the fused ensemble. Higher
+    Silhouette and Dunn, lower DBI are better.
+  </p>
+  <img
+    src={`${API_BASE_URL}/static/current_method_metrics.png`}
+    alt="Unsupervised metrics per method"
+    onClick={() =>
+      setZoomedImg(
+        `${API_BASE_URL}/static/current_method_metrics.png`
+      )
+    }
+    style={{
+      width: "100%",
+      height: "220px",
+      objectFit: "contain",
+      borderRadius: 8,
+      cursor: "zoom-in",
+    }}
+  />
+</div>
+
+                    </div>
+                  </div>
+                )}
+
                 {/* ───────── Model Training Panel ───────── */}
                 <hr style={{ margin: "24px 0", borderColor: "#e0e0e0" }} />
 
@@ -491,8 +627,8 @@ useEffect(() => {
                 </div>
                 <p className="eco-muted">
                   Launch background model training. Choose a mode (fast for quick
-                  checks, moderate for ASHA-based tuning). Progress is tracked
-                  below.
+                  checks, moderate for ASHA-based tuning). Progress and the
+                  latest model card are shown below.
                 </p>
 
                 <div
@@ -508,7 +644,11 @@ useEffect(() => {
                     value={mode}
                     onChange={(e) =>
                       setMode(
-                        e.target.value as "fast" | "moderate" | "slow" | "very_slow"
+                        e.target.value as
+                          | "fast"
+                          | "moderate"
+                          | "slow"
+                          | "very_slow"
                       )
                     }
                     style={{
@@ -520,17 +660,19 @@ useEffect(() => {
                     disabled={isStartingTraining || status?.status === "running"}
                   >
                     <option value="fast">Fast (dev / quick check)</option>
-                    <option value="moderate">Moderate (ASHA – recommended)</option>
+                    <option value="moderate">
+                      Moderate (ASHA – recommended)
+                    </option>
                     <option value="slow">Slow (extended search)</option>
-                    <option value="very_slow">Very slow (full grid)</option>
+                    <option value="very_slow">
+                      Very slow (full grid search)
+                    </option>
                   </select>
 
                   <button
                     className="btn-eco"
                     onClick={handleStartTraining}
-                    disabled={
-                      isStartingTraining || status?.status === "running"
-                    }
+                    disabled={isStartingTraining || status?.status === "running"}
                   >
                     {isStartingTraining
                       ? "Starting…"
@@ -540,6 +682,7 @@ useEffect(() => {
                   </button>
                 </div>
 
+                {/* Job status */}
                 {status && (
                   <div
                     className="eco-muted"
@@ -549,13 +692,12 @@ useEffect(() => {
                       <strong>Job status:</strong> {status.status}
                     </div>
                     {status.result?.mode && (
-                      <div>Mode: {status.result.mode}</div>
-                    )}
-                    {status.result?.model_version && (
-                      <div>Model version: {status.result.model_version}</div>
+                      <div>Last training mode: {status.result.mode}</div>
                     )}
                     {status.result?.duration_sec && (
-                      <div>Duration: {status.result.duration_sec} sec</div>
+                      <div>
+                        Duration: {status.result.duration_sec.toFixed(1)} sec
+                      </div>
                     )}
                     {status.error && (
                       <div style={{ color: "#c62828" }}>
@@ -564,9 +706,113 @@ useEffect(() => {
                     )}
                   </div>
                 )}
+
+                {/* Current model card summary */}
+                {modelCard && (
+                  <div
+                    className="eco-table compact"
+                    style={{ marginTop: 16, fontSize: "0.9rem" }}
+                  >
+                    <div className="eco-thead">
+                      <span>Field</span>
+                      <span>Value</span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Model ID</span>
+                      <span>{modelCard.model_id}</span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Version</span>
+                      <span>{modelCard.version}</span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Trained at</span>
+                      <span>
+                        {modelCard.trained_at
+                          ? new Date(modelCard.trained_at).toLocaleString()
+                          : "—"}
+                      </span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Training mode</span>
+                      <span>{modelCard.mode}</span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Data</span>
+                      <span>
+                        {modelCard.data?.n_samples ?? "?"} rows,{" "}
+                        {modelCard.data?.n_features ?? "?"} features
+                      </span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Silhouette / Dunn / DBI</span>
+                      <span>
+                        {modelCard.metrics?.silhouette?.toFixed
+                          ? modelCard.metrics.silhouette.toFixed(3)
+                          : modelCard.metrics?.silhouette}{" "}
+                        /{" "}
+                        {modelCard.metrics?.dunn?.toFixed
+                          ? modelCard.metrics.dunn.toFixed(3)
+                          : modelCard.metrics?.dunn}{" "}
+                        /{" "}
+                        {modelCard.metrics?.dbi?.toFixed
+                          ? modelCard.metrics.dbi.toFixed(3)
+                          : modelCard.metrics?.dbi}
+                      </span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Stability (bootstrap ρ / Jaccard / ARI)</span>
+                      <span>
+                        {modelCard.stability?.bootstrap_spearman_rho?.toFixed
+                          ? modelCard.stability.bootstrap_spearman_rho.toFixed(3)
+                          : modelCard.stability?.bootstrap_spearman_rho}{" "}
+                        /{" "}
+                        {modelCard.stability?.bootstrap_jaccard_at_k?.toFixed
+                          ? modelCard.stability.bootstrap_jaccard_at_k.toFixed(3)
+                          : modelCard.stability?.bootstrap_jaccard_at_k}{" "}
+                        /{" "}
+                        {modelCard.stability?.bootstrap_ari?.toFixed
+                          ? modelCard.stability.bootstrap_ari.toFixed(3)
+                          : modelCard.stability?.bootstrap_ari}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Model history table */}
+                {modelHistory && modelHistory.length > 0 && (
+                  <div
+                    className="eco-table compact"
+                    style={{ marginTop: 16, fontSize: "0.9rem" }}
+                  >
+                    <div className="eco-thead">
+                      <span>Version</span>
+                      <span>Trained at</span>
+                      <span>Mode</span>
+                      <span>Silhouette</span>
+                    </div>
+                    {modelHistory.map((m) => (
+                      <div className="eco-row" key={m.version}>
+                        <span>{m.version}</span>
+                        <span>
+                          {m.trained_at
+                            ? new Date(m.trained_at).toLocaleString()
+                            : "—"}
+                        </span>
+                        <span>{m.mode}</span>
+                        <span>
+                          {m.metrics?.silhouette?.toFixed
+                            ? m.metrics.silhouette.toFixed(3)
+                            : m.metrics?.silhouette}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             )}
 
+            {/* ───────── Audit TAB ───────── */}
             {tab === "Audit" && (
               <>
                 <div className="eco-card-head">
@@ -576,7 +822,7 @@ useEffect(() => {
                 </div>
                 <p className="eco-muted">
                   Snapshot of recent governance actions. This is a visual
-                  placeholder; you can later hook it to your real audit log API.
+                  placeholder; later you can hook it to a real audit log API.
                 </p>
                 <ul className="eco-steps">
                   <li>2025-02-24 — Model v1.2 activated</li>

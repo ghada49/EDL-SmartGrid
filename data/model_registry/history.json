@@ -1,0 +1,150 @@
+[
+  {
+    "model_id": "fused_if_lof_ae_ocsvm_copula",
+    "version": 1,
+    "trained_at": "2025-11-17T20:34:36.548282+00:00",
+    "mode": "moderate",
+    "duration_sec": 1236.84,
+    "data": {
+      "n_samples": 1761,
+      "n_features": 26,
+      "source": "data/latest_ingested.csv"
+    },
+    "metrics": {
+      "silhouette": 0.641258991488588,
+      "dunn": 0.034746877708088715,
+      "dbi": 1.0933606516004495
+    },
+    "stability": {
+      "bootstrap_spearman_rho": 0.995455889892428,
+      "bootstrap_jaccard_at_k": 0.8328605858361143,
+      "bootstrap_ari": 0.909420983432723,
+      "noise_rho": 0.9981232694085325,
+      "seed_rho": 0.9983140092650729
+    },
+    "hyperparams": {
+      "contamination": 0.02,
+      "use_pca": true,
+      "use_fa": false,
+      "pca_components": 7
+    },
+    "files": {
+      "scores_csv": "data\\processed\\anomaly_scores.csv",
+      "meta_json": "data\\processed\\anomaly_scores_meta.json",
+      "stability_json": "data\\processed\\anomaly_scores_stability.json",
+      "scaler": "data\\processed\\anomaly_scores_scaler.joblib",
+      "pca": "data\\processed\\anomaly_scores_pca.joblib"
+    }
+  },
+  {
+    "model_id": "fused_if_lof_ae_ocsvm_copula",
+    "version": 2,
+    "trained_at": "2025-11-17T20:59:32.357052+00:00",
+    "mode": "fast",
+    "duration_sec": 484.06920742988586,
+    "data": {
+      "n_samples": 1761,
+      "n_features": 26,
+      "source": "data/latest_ingested.csv"
+    },
+    "metrics": {
+      "silhouette": 0.6530848758165984,
+      "dunn": 0.04531195088569784,
+      "dbi": 0.91547784146966
+    },
+    "stability": {
+      "bootstrap_spearman_rho": 0.9760721199516696,
+      "bootstrap_jaccard_at_k": 0.9164380175503646,
+      "bootstrap_ari": 0.9444587156675738,
+      "noise_rho": 0.9889660378433468,
+      "seed_rho": 0.9981777264598723
+    },
+    "hyperparams": {
+      "contamination": 0.02,
+      "use_pca": true,
+      "use_fa": false,
+      "pca_components": 7
+    },
+    "files": {
+      "scores_csv": "data\\processed\\anomaly_scores.csv",
+      "meta_json": "data\\processed\\anomaly_scores_meta.json",
+      "stability_json": "data\\processed\\anomaly_scores_stability.json",
+      "scaler": "data\\processed\\anomaly_scores_scaler.joblib",
+      "pca": "data\\processed\\anomaly_scores_pca.joblib"
+    }
+  },
+  {
+    "model_id": "fused_if_lof_ae_ocsvm_copula",
+    "version": 3,
+    "trained_at": "2025-11-17T22:40:23.601002+00:00",
+    "mode": "fast",
+    "duration_sec": 216.44679021835327,
+    "data": {
+      "n_samples": 1761,
+      "n_features": 26,
+      "source": "data/latest_ingested.csv"
+    },
+    "metrics": {
+      "silhouette": 0.655918641321035,
+      "dunn": 0.02535575345989264,
+      "dbi": 0.9461161239866142
+    },
+    "stability": {
+      "bootstrap_spearman_rho": 0.9761230460760949,
+      "bootstrap_jaccard_at_k": 0.8838338895068595,
+      "bootstrap_ari": 0.9170060186299936,
+      "noise_rho": 0.9887586062759709,
+      "seed_rho": 0.9975995875144085
+    },
+    "hyperparams": {
+      "contamination": 0.02,
+      "use_pca": true,
+      "use_fa": false,
+      "pca_components": 7
+    },
+    "files": {
+      "scores_csv": "data\\processed\\anomaly_scores.csv",
+      "meta_json": "data\\processed\\anomaly_scores_meta.json",
+      "stability_json": "data\\processed\\anomaly_scores_stability.json",
+      "scaler": "data\\processed\\anomaly_scores_scaler.joblib",
+      "pca": "data\\processed\\anomaly_scores_pca.joblib"
+    }
+  },
+  {
+    "model_id": "fused_if_lof_ae_ocsvm_copula",
+    "version": 4,
+    "trained_at": "2025-11-18T08:43:53.896066+00:00",
+    "mode": "fast",
+    "duration_sec": 477.0491044521332,
+    "data": {
+      "n_samples": 1761,
+      "n_features": 26,
+      "source": "data/latest_ingested.csv"
+    },
+    "metrics": {
+      "silhouette": 0.6530848758165984,
+      "dunn": 0.04531195088569784,
+      "dbi": 0.91547784146966
+    },
+    "stability": {
+      "bootstrap_spearman_rho": 0.9759243371506571,
+      "bootstrap_jaccard_at_k": 0.9164380175503647,
+      "bootstrap_ari": 0.9474078920644834,
+      "noise_rho": 0.9884530004391938,
+      "seed_rho": 0.9982036180800096
+    },
+    "hyperparams": {
+      "contamination": 0.02,
+      "use_pca": true,
+      "use_fa": false,
+      "pca_components": 7
+    },
+    "files": {
+      "scores_csv": "data\\processed\\anomaly_scores.csv",
+      "meta_json": "data\\processed\\anomaly_scores_meta.json",
+      "stability_json": "data\\processed\\anomaly_scores_stability.json",
+      "scaler": "data\\processed\\anomaly_scores_scaler.joblib",
+      "pca": "data\\processed\\anomaly_scores_pca.joblib"
+    }
+  }
+]

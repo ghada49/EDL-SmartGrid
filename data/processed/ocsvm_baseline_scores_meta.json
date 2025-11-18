@@ -1,0 +1,25 @@
+{
+  "model": "one_class_svm_baseline",
+  "input_csv": "C:\\Users\\HP\\EECE-490-Project-4\\data\\processed\\processed_data.csv",
+  "output_csv": "C:\\Users\\HP\\EECE-490-Project-4\\data\\processed\\ocsvm_baseline_scores.csv",
+  "n_samples": 1761,
+  "n_features": 7,
+  "contamination": 0.02,
+  "decision_threshold": 5.291597898057826,
+  "hyperparams": {
+    "nu": 0.09313000857706834,
+    "kernel": "sigmoid",
+    "gamma": "auto",
+    "degree": 4,
+    "coef0": 0.0,
+    "use_pca": true,
+    "pca_var": 0.98,
+    "scaler": "standard",
+    "seed": 42
+  },
+  "metrics": {
+    "silhouette": 0.19081495355845168,
+    "dunn": 0.017812644012620584,
+    "dbi": 3.104628426373087
+  }
+}

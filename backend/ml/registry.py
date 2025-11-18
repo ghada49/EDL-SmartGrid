@@ -1,30 +1,142 @@
-import json, shutil
+# backend/ml/registry.py
+import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
+from .plots import generate_model_plots
 
-MODEL_DIR = Path(__file__).resolve().parent / "model_store"
-REGISTRY_FILE = Path(__file__).resolve().parent / "model_registry.json"
-ACTIVE_MODEL = MODEL_DIR / "current_model.pkl"
+HERE = Path(__file__).resolve().parent
+REPO_ROOT = HERE.parent.parent
+REGISTRY_DIR = REPO_ROOT / "data" / "model_registry"
+CURRENT_CARD = REGISTRY_DIR / "current_model_card.json"
+HISTORY_FILE = REGISTRY_DIR / "history.json"
 
-def save_new_model_version(model_path: str):
-    MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    version = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
-    dst = MODEL_DIR / f"model_{version}.pkl"
 
-    shutil.copy(model_path, dst)
-    shutil.copy(dst, ACTIVE_MODEL)
+def _now_iso():
+    return datetime.now(timezone.utc).isoformat()
 
-    entry = {
-        "version": version,
-        "path": str(dst),
-        "created_at": datetime.utcnow().isoformat() + "Z"
-    }
 
-    if REGISTRY_FILE.exists():
-        registry = json.loads(REGISTRY_FILE.read_text())
+def save_new_model_version(
+    scores_csv: Path,
+    mode: str,
+    duration_sec: float | None = None,
+    source_path: str | None = None,
+) -> dict:
+    """
+    Build a compact model card from the meta + stability JSON and persist:
+      - data/model_registry/current_model_card.json
+      - append to data/model_registry/history.json
+    """
+    scores_csv = Path(scores_csv).resolve()
+    base = scores_csv.with_suffix("")  # .../anomaly_scores
+    meta_path = Path(str(base) + "_meta.json")
+    stab_path = Path(str(base) + "_stability.json")
+
+    if not meta_path.exists():
+        raise FileNotFoundError(f"Meta JSON not found at {meta_path}")
+    if not stab_path.exists():
+        raise FileNotFoundError(f"Stability JSON not found at {stab_path}")
+
+    with open(meta_path, "r") as f:
+        meta = json.load(f)
+    with open(stab_path, "r") as f:
+        stab = json.load(f)
+
+    # Extract fused metrics
+    evals = meta.get("evals", {})
+    fused = evals.get("FUSED", {})
+    sil = fused.get("silhouette")
+    dunn = fused.get("dunn")
+    dbi = fused.get("dbi")
+
+    # Extract stability summary
+    boot = stab.get("bootstrap", {})
+    seed_sens = stab.get("seed_sensitivity", {})
+    noise = stab.get("noise_robustness", {})
+
+    # Infer simple data summary (optional)
+    try:
+        import pandas as pd
+        df = pd.read_csv(scores_csv)
+        n_samples = int(len(df))
+        n_features = int(len(df.select_dtypes("number").columns))
+    except Exception:
+        n_samples = None
+        n_features = None
+
+    REGISTRY_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Determine version (history length + 1)
+    if HISTORY_FILE.exists():
+        with open(HISTORY_FILE, "r") as f:
+            hist = json.load(f)
     else:
-        registry = []
+        hist = []
 
-    registry.append(entry)
-    REGISTRY_FILE.write_text(json.dumps(registry, indent=2))
-    return version
+    version = len(hist) + 1
+
+    card = {
+        "model_id": "fused_if_lof_ae_ocsvm_copula",
+        "version": version,
+        "trained_at": _now_iso(),
+        "mode": mode,
+        "duration_sec": duration_sec,
+        "data": {
+            "n_samples": n_samples,
+            "n_features": n_features,
+            "source": source_path or "data/latest_ingested.csv",
+        },
+        "metrics": {
+            "silhouette": sil,
+            "dunn": dunn,
+            "dbi": dbi,
+        },
+        "stability": {
+            "bootstrap_spearman_rho": boot.get("spearman_rho_mean"),
+            "bootstrap_jaccard_at_k": boot.get("jaccard_at_k_mean"),
+            "bootstrap_ari": boot.get("ari_mean"),
+            "noise_rho": noise.get("spearman_rho_mean"),
+            "seed_rho": seed_sens.get("spearman_rho_mean"),
+        },
+        "hyperparams": {
+            "contamination": meta.get("contamination"),
+            "use_pca": meta.get("use_pca"),
+            "use_fa": meta.get("use_fa"),
+            "pca_components": meta.get("pca_components"),
+        },
+        "files": {
+            "scores_csv": str(scores_csv.relative_to(REPO_ROOT)),
+            "meta_json": str(meta_path.relative_to(REPO_ROOT)),
+            "stability_json": str(stab_path.relative_to(REPO_ROOT)),
+            "scaler": str(Path(str(base) + "_scaler.joblib").relative_to(REPO_ROOT)),
+            "pca": str(Path(str(base) + "_pca.joblib").relative_to(REPO_ROOT))
+                     if Path(str(base) + "_pca.joblib").exists()
+                     else None,
+        },
+    }
+    generate_model_plots(scores_csv, REGISTRY_DIR)
+
+
+    # Save current card
+    with open(CURRENT_CARD, "w") as f:
+        json.dump(card, f, indent=2)
+
+    # Append to history
+    hist.append(card)
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(hist, f, indent=2)
+
+    return card
+
+
+def get_current_model_card() -> dict | None:
+    if not CURRENT_CARD.exists():
+        return None
+    with open(CURRENT_CARD, "r") as f:
+        return json.load(f)
+
+
+def get_model_history() -> list[dict]:
+    if not HISTORY_FILE.exists():
+        return []
+    with open(HISTORY_FILE, "r") as f:
+        return json.load(f)

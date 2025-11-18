@@ -1,0 +1,37 @@
+{
+  "model_id": "fused_if_lof_ae_ocsvm_copula",
+  "version": 4,
+  "trained_at": "2025-11-18T08:43:53.896066+00:00",
+  "mode": "fast",
+  "duration_sec": 477.0491044521332,
+  "data": {
+    "n_samples": 1761,
+    "n_features": 26,
+    "source": "data/latest_ingested.csv"
+  },
+  "metrics": {
+    "silhouette": 0.6530848758165984,
+    "dunn": 0.04531195088569784,
+    "dbi": 0.91547784146966
+  },
+  "stability": {
+    "bootstrap_spearman_rho": 0.9759243371506571,
+    "bootstrap_jaccard_at_k": 0.9164380175503647,
+    "bootstrap_ari": 0.9474078920644834,
+    "noise_rho": 0.9884530004391938,
+    "seed_rho": 0.9982036180800096
+  },
+  "hyperparams": {
+    "contamination": 0.02,
+    "use_pca": true,
+    "use_fa": false,
+    "pca_components": 7
+  },
+  "files": {
+    "scores_csv": "data\\processed\\anomaly_scores.csv",
+    "meta_json": "data\\processed\\anomaly_scores_meta.json",
+    "stability_json": "data\\processed\\anomaly_scores_stability.json",
+    "scaler": "data\\processed\\anomaly_scores_scaler.joblib",
+    "pca": "data\\processed\\anomaly_scores_pca.joblib"
+  }
+}

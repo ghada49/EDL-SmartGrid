@@ -22,3 +22,4 @@ scikit-learn
 scipy
 hdbscan
 tensorflow>=2.10 
+matlotlib

@@ -193,7 +193,7 @@ def main():
     random.shuffle(all_combos)
     sampled_combos = all_combos[:850]  # only run 850 trials
     
-    print(f"🐢 SLOW MODE: Running {len(sampled_combos)} sampled configurations...\n")
+    print(f"SLOW MODE: Running {len(sampled_combos)} sampled configurations...\n")
 
     rows = []
     best = None
@@ -207,7 +207,7 @@ def main():
             rows.append(row)
 
             print(
-                f"   → Score={row['score']:.4f} | "
+                f"   Score={row['score']:.4f} | "
                 f"Sil={row['silhouette']:.3f} | "
                 f"Dunn={row['dunn']:.3f} | DBI={row['dbi']:.3f}"
             )
@@ -231,11 +231,11 @@ def main():
         json.dump(best, f, indent=2)
 
     print("\n====================================")
-    print("🐢 SLOW MODE DONE")
+    print("SLOW MODE DONE")
     print("Best configuration:")
     print(best)
-    print(f"→ Results CSV      : {results_csv}")
-    print(f"→ Best config JSON : {best_json}")
+    print(f"Results CSV      : {results_csv}")
+    print(f"Best config JSON : {best_json}")
     print("====================================")
 
 
