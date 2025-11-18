@@ -873,6 +873,12 @@ textarea.auth-input {
   backdrop-filter: blur(8px);
 }
 
+.eco-kpi--active {
+  background: rgba(27, 94, 32, 0.3);
+  border-color: rgba(27, 94, 32, 0.8);
+  color: #0b3d14;
+}
+
 .eco-kpi-num {
   font-weight: 800;
   font-size: 1.4rem;

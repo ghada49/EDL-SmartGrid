@@ -513,6 +513,9 @@ const InspectorRoutes: React.FC = () => {
   const [recoByCase, setRecoByCase] = useState<Record<number, string>>({});
   const [flashByCase, setFlashByCase] = useState<Record<number, string>>({});
   const [readingByCase, setReadingByCase] = useState<Record<number, string>>({});
+  const [caseStatusFilter, setCaseStatusFilter] = useState<
+    (typeof INSPECTOR_CASE_STATUSES)[number] | null
+  >(null);
 
   const flashMessage = (caseId: number, message: string) => {
     setFlashByCase((prev) => ({ ...prev, [caseId]: message }));
@@ -709,8 +712,11 @@ const InspectorRoutes: React.FC = () => {
     </div>
   );
 
+  const filteredCases =
+    caseStatusFilter == null ? myCases : myCases.filter((c) => c.status === caseStatusFilter);
+
   const casesCard = (
-    <div className="eco-card inspector-cases">
+  <div className="eco-card inspector-cases">
       <div className="eco-card-head">
         <h3>
           <FaClipboardCheck className="eco-icon-sm" /> My Cases
@@ -724,24 +730,31 @@ const InspectorRoutes: React.FC = () => {
       ) : (
         <>
           <div className="eco-kpi-strip">
-            {INSPECTOR_CASE_STATUSES.map((st) => (
-              <div className="eco-kpi glassy" key={st}>
-                <div className="eco-kpi-num">
-                  {myCases.filter((c) => c.status === st).length}
-                </div>
-                <div className="eco-kpi-label">{st}</div>
-              </div>
-            ))}
+            {INSPECTOR_CASE_STATUSES.map((st) => {
+              const count = myCases.filter((c) => c.status === st).length;
+              const isActive = caseStatusFilter === st;
+              return (
+                <button
+                  key={st}
+                  type="button"
+                  className={`eco-kpi glassy ${isActive ? "eco-kpi--active" : ""}`}
+                  onClick={() => setCaseStatusFilter(isActive ? null : st)}
+                >
+                  <div className="eco-kpi-num">{count}</div>
+                  <div className="eco-kpi-label">{st}</div>
+                </button>
+              );
+            })}
           </div>
 
-          {myCases.length > 0 && (
+          {filteredCases.length > 0 ? (
             <div className="eco-table compact cases-scroll" style={{ marginTop: 12 }}>
               <div className="eco-thead">
                 <span>Case</span>
                 <span>Status</span>
                 <span>Actions</span>
               </div>
-              {myCases.map((c) => (
+              {filteredCases.map((c) => (
                 <React.Fragment key={c.id}>
                   <div className="eco-row">
                     <span>#{c.id}</span>
@@ -922,9 +935,13 @@ const InspectorRoutes: React.FC = () => {
                 </React.Fragment>
               ))}
             </div>
+          ) : (
+            <p className="eco-muted mt-3">
+              {caseStatusFilter
+                ? `No ${caseStatusFilter.toLowerCase()} cases right now.`
+                : "No assigned cases yet."}
+            </p>
           )}
-
-          {myCases.length === 0 && <p className="eco-muted mt-3">No assigned cases yet.</p>}
         </>
       )}
     </div>
