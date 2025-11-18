@@ -1,8 +1,11 @@
 # backend/app.py
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .db import Base, engine
@@ -27,6 +30,9 @@ from .routers.feedback import router as feedback_router
 from . import models  # ensure package exists
 from .models import user as user_model   # noqa: F401
 from .models import ops as ops_models    # noqa: F401
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PLOTS_DIR = REPO_ROOT / "data" / "plots"
 
 
 def create_app() -> FastAPI:
@@ -76,6 +82,9 @@ def create_app() -> FastAPI:
         prefix="/inspector",
         tags=["Inspector"],
     )
+
+    app.mount("/static", StaticFiles(directory=PLOTS_DIR), name="plots")
+    app.mount("/model_plots", StaticFiles(directory=PLOTS_DIR), name="model_plots")
 
     @app.get("/health")
     def health():
