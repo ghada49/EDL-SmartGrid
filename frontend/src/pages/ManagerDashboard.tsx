@@ -327,19 +327,72 @@ const ManagerDashboard: React.FC = () => {
               </div>
 
               <h4>Reports</h4>
-              <div className="eco-table compact">
-                <div className="eco-thead">
-                  <span>ID</span>
-                  <span>Status</span>
-                  <span>Actions</span>
-                </div>
+              {detail.reports.length === 0 && (
+                <p className="eco-muted">No inspection reports have been submitted yet.</p>
+              )}
+              {detail.reports.map((r: any) => {
+                const readings =
+                  (detail.activities || []).filter(
+                    (a: any) =>
+                      a.action === "METER_READING" &&
+                      (!r.created_at ||
+                        !a.created_at ||
+                        new Date(a.created_at) <= new Date(r.created_at))
+                  ) || [];
+                const readingEntry =
+                  readings.length > 0 ? readings[readings.length - 1] : null;
 
-                {detail.reports.map((r: any) => (
-                  <div className="eco-row" key={r.id}>
-                    <span>{r.id}</span>
-                    <span>{r.status}</span>
-
-                    <span className="eco-actions">
+                return (
+                  <div
+                    key={r.id}
+                    className="eco-card glassy"
+                    style={{ marginBottom: 12, padding: 16, boxShadow: "none" }}
+                  >
+                    <div className="eco-row" style={{ marginBottom: 12 }}>
+                      <span>
+                        <strong>Report #{r.id}</strong>
+                      </span>
+                      <span>Status: {r.status}</span>
+                      <span>
+                        Submitted: {r.created_at ? new Date(r.created_at).toLocaleString() : "-"}
+                      </span>
+                    </div>
+                    <div style={{ marginBottom: 12 }}>
+                      <p className="eco-muted">Findings</p>
+                      <pre className="eco-pre" style={{ whiteSpace: "pre-wrap" }}>
+                        {r.findings || "No findings provided."}
+                      </pre>
+                    </div>
+                    <div style={{ marginBottom: 12 }}>
+                      <p className="eco-muted">Recommendation</p>
+                      <pre className="eco-pre" style={{ whiteSpace: "pre-wrap" }}>
+                        {r.recommendation || "No recommendation provided."}
+                      </pre>
+                    </div>
+                    {readingEntry && (
+                      <p style={{ marginBottom: 12 }}>
+                        <strong>Latest Meter Reading:</strong> {readingEntry.note}{" "}
+                        {readingEntry.created_at
+                          ? `(${new Date(readingEntry.created_at).toLocaleString()})`
+                          : ""}
+                      </p>
+                    )}
+                    {detail.attachments && detail.attachments.length > 0 && (
+                      <div style={{ marginBottom: 12 }}>
+                        <p className="eco-muted">Attachments</p>
+                        <ul style={{ margin: 0, paddingLeft: 16 }}>
+                          {detail.attachments.map((at: any) => (
+                            <li key={at.id}>
+                              {at.filename}{" "}
+                              {at.uploaded_at
+                                ? `(${new Date(at.uploaded_at).toLocaleString()})`
+                                : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <div className="eco-actions">
                       <button
                         className="btn-outline sm"
                         onClick={async () => {
@@ -379,10 +432,10 @@ const ManagerDashboard: React.FC = () => {
                       >
                         Reject
                       </button>
-                    </span>
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
 
               {/* COMMENT */}
               <div className="eco-actions" style={{ marginTop: 8 }}>
