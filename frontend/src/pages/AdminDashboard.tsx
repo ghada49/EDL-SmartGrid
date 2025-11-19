@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { listUsers, updateUserRole, UserRow } from "../api/users";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -15,6 +15,7 @@ import {
   getTrainingStatus,
   getCurrentModelCard,
   getModelHistory,
+  activateModelVersion,
 } from "../api/opsTrain";
 import { API_BASE_URL } from "../api/client";
 
@@ -109,6 +110,12 @@ const AdminDashboard: React.FC = () => {
   // Model registry (current + history)
   const [modelCard, setModelCard] = useState<any | null>(null);
   const [modelHistory, setModelHistory] = useState<any[]>([]);
+  const [activatingVersion, setActivatingVersion] = useState<number | null>(null);
+  const [activationError, setActivationError] = useState<string | null>(null);
+  const formatMetric = useCallback((value: any, digits = 3) => {
+    if (value === null || value === undefined) return "—";
+    return typeof value === "number" ? value.toFixed(digits) : value;
+  }, []);
 
   // ───── Dataset Upload / Drift / History ─────
   const [uploadDQ, setUploadDQ] = useState<DQ | null>(null);
@@ -117,28 +124,32 @@ const AdminDashboard: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
 
   // ───── Tabs ─────
-  const [tab, setTab] = useState<"Overview" | "Users" | "Data & Models" | "Audit">(
+  const [tab, setTab] = useState<
+    "Overview" | "Users" | "Data & Models" | "Model Registry"
+  >(
     "Overview"
   );
   const [zoomedImg, setZoomedImg] = useState<string | null>(null);
   // ───── Initial load of model card + model history ─────
-  useEffect(() => {
-    const loadModelInfo = async () => {
-      try {
-        const card = await getCurrentModelCard();
-        setModelCard(card);
-      } catch (err) {
-        console.warn("No current model card yet:", err);
-      }
-      try {
-        const hist = await getModelHistory();
-        setModelHistory(hist || []);
-      } catch (err) {
-        console.warn("Failed to load model history:", err);
-      }
-    };
-    loadModelInfo();
+  const refreshModelInfo = useCallback(async () => {
+    try {
+      const card = await getCurrentModelCard();
+      setModelCard(card);
+    } catch (err) {
+      setModelCard(null);
+      console.warn("No current model card yet:", err);
+    }
+    try {
+      const hist = await getModelHistory();
+      setModelHistory(hist || []);
+    } catch (err) {
+      console.warn("Failed to load model history:", err);
+    }
   }, []);
+
+  useEffect(() => {
+    refreshModelInfo();
+  }, [refreshModelInfo]);
 
   // ───── Training job polling ─────
   useEffect(() => {
@@ -151,16 +162,8 @@ const AdminDashboard: React.FC = () => {
         const data = await getTrainingStatus(jobId);
         if (!cancelled) {
           setStatus(data);
-          // When job completes, refresh model card + history
           if (data.status === "completed") {
-            try {
-              const card = await getCurrentModelCard();
-              setModelCard(card);
-              const hist = await getModelHistory();
-              setModelHistory(hist || []);
-            } catch (err) {
-              console.error("Failed to refresh model info after training:", err);
-            }
+            await refreshModelInfo();
           }
         }
       } catch (err) {
@@ -175,7 +178,7 @@ const AdminDashboard: React.FC = () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [jobId]);
+  }, [jobId, refreshModelInfo]);
 
   if (!myRole) {
     return <div>Loading...</div>;
@@ -190,16 +193,21 @@ const AdminDashboard: React.FC = () => {
     return name.includes(q) || email.includes(q);
   });
 
+  const sortedModelHistory = [...modelHistory].sort((a, b) => {
+    const av = typeof a?.version === "number" ? a.version : 0;
+    const bv = typeof b?.version === "number" ? b.version : 0;
+    return bv - av;
+  });
+
   // ───── Training handler ─────
   const handleStartTraining = async () => {
     if (isStartingTraining) return;
     try {
       setIsStartingTraining(true);
-      setStatus({ status: "queued" });
+      setStatus({ status: "queued", stage: "queued", progress: 0 });
 
       const res = await startTraining(mode); // { job_id, status, mode }
       setJobId(res.job_id);
-      setStatus({ status: "queued" });
     } catch (err: any) {
       console.error("Failed to start training:", err);
       setStatus({
@@ -208,6 +216,20 @@ const AdminDashboard: React.FC = () => {
       });
     } finally {
       setIsStartingTraining(false);
+    }
+  };
+
+  const handleActivateVersion = async (version: number) => {
+    if (activatingVersion === version) return;
+    try {
+      setActivationError(null);
+      setActivatingVersion(version);
+      await activateModelVersion(version);
+      await refreshModelInfo();
+    } catch (err: any) {
+      setActivationError(err?.response?.data?.detail || err.message);
+    } finally {
+      setActivatingVersion(null);
     }
   };
 
@@ -225,7 +247,7 @@ const AdminDashboard: React.FC = () => {
 
         {/* ── Tabs strip ── */}
         <Tabs
-          tabs={["Overview", "Users", "Data & Models", "Audit"]}
+          tabs={["Overview", "Users", "Data & Models", "Model Registry"]}
           active={tab}
           onChange={(t) => setTab(t as any)}
         />
@@ -337,6 +359,7 @@ const AdminDashboard: React.FC = () => {
               </>
             )}
 
+            
             {/* ───────── Data & Models TAB ───────── */}
             {tab === "Data & Models" && (
               <>
@@ -682,32 +705,74 @@ const AdminDashboard: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Job status */}
-                {status && (
-                  <div
-                    className="eco-muted"
-                    style={{ marginTop: 10, fontSize: "0.9rem" }}
-                  >
-                    <div>
-                      <strong>Job status:</strong> {status.status}
-                    </div>
-                    {status.result?.mode && (
-                      <div>Last training mode: {status.result.mode}</div>
-                    )}
-                    {status.result?.duration_sec && (
-                      <div>
-                        Duration: {status.result.duration_sec.toFixed(1)} sec
-                      </div>
-                    )}
-                    {status.error && (
-                      <div style={{ color: "#c62828" }}>
-                        Error: {String(status.error)}
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Job status + progress */}
+{status && (
+  <div style={{ marginTop: 10 }}>
+    {/* Progress bar if we have a numeric progress */}
+    {typeof status.progress === "number" && (
+      <>
+        <div
+          style={{
+            height: "10px",
+            width: "100%",
+            background: "#e0f2f1",
+            borderRadius: 999,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${Math.round(status.progress * 100)}%`,
+              background: "#2e7d32",
+              transition: "width 0.4s ease",
+            }}
+          />
+        </div>
+        <div
+          style={{
+            marginTop: 4,
+            fontSize: "0.85rem",
+            display: "flex",
+            justifyContent: "space-between",
+          }}
+        >
+          <span>
+            Stage:{" "}
+            {status.stage
+              ? String(status.stage).replace(/_/g, " ")
+              : status.status}
+          </span>
+          <span>{Math.round(status.progress * 100)}%</span>
+        </div>
+      </>
+    )}
 
-                {/* Current model card summary */}
+    <div
+      className="eco-muted"
+      style={{ marginTop: 6, fontSize: "0.9rem" }}
+    >
+      <div>
+        <strong>Job status:</strong> {status.status}
+      </div>
+      {status.result?.mode && (
+        <div>Last training mode: {status.result.mode}</div>
+      )}
+      {status.result?.duration_sec && (
+        <div>
+          Duration: {status.result.duration_sec.toFixed(1)} sec
+        </div>
+      )}
+      {status.error && (
+        <div style={{ color: "#c62828" }}>
+          Error: {String(status.error)}
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+{/* Current model card summary */}
                 {modelCard && (
                   <div
                     className="eco-table compact"
@@ -779,60 +844,265 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 )}
 
-                {/* Model history table */}
-                {modelHistory && modelHistory.length > 0 && (
+
+
+
+
+              </>
+            )}
+
+            {/* ───────── Audit TAB ───────── */}
+            {tab === "Model Registry" && (
+              <>
+                <div className="eco-card-head">
+                  <h3>
+                    <FaBalanceScale className="eco-icon-sm" /> Model Registry
+                  </h3>
+                </div>
+                <p className="eco-muted">
+                  Track every training run, compare metrics, and decide which version powers production scoring.
+                </p>
+                {activationError && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      padding: "8px 12px",
+                      borderRadius: 8,
+                      background: "#ffebee",
+                      color: "#c62828",
+                    }}
+                  >
+                    {activationError}
+                  </div>
+                )}
+                {modelCard ? (
                   <div
                     className="eco-table compact"
                     style={{ marginTop: 16, fontSize: "0.9rem" }}
                   >
                     <div className="eco-thead">
-                      <span>Version</span>
-                      <span>Trained at</span>
-                      <span>Mode</span>
-                      <span>Silhouette</span>
+                      <span>Field</span>
+                      <span>Value</span>
                     </div>
-                    {modelHistory.map((m) => (
-                      <div className="eco-row" key={m.version}>
-                        <span>{m.version}</span>
-                        <span>
-                          {m.trained_at
-                            ? new Date(m.trained_at).toLocaleString()
-                            : "—"}
-                        </span>
-                        <span>{m.mode}</span>
-                        <span>
-                          {m.metrics?.silhouette?.toFixed
-                            ? m.metrics.silhouette.toFixed(3)
-                            : m.metrics?.silhouette}
-                        </span>
-                      </div>
-                    ))}
+                    <div className="eco-row">
+                      <span>Version</span>
+                      <span>
+                        v{modelCard.version}{" "}
+                        {modelCard.is_active && (
+                          <span className="eco-badge">Active</span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Trained at</span>
+                      <span>
+                        {modelCard.trained_at
+                          ? new Date(modelCard.trained_at).toLocaleString()
+                          : "-"}
+                      </span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Activated at</span>
+                      <span>
+                        {modelCard.activated_at
+                          ? new Date(modelCard.activated_at).toLocaleString()
+                          : "-"}
+                      </span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Mode / Runtime</span>
+                      <span>
+                        {modelCard.mode} � {" "}
+                        {modelCard.duration_sec
+                          ? `${modelCard.duration_sec.toFixed(1)}s`
+                          : "-"}
+                      </span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Dataset</span>
+                      <span>
+                        {modelCard.data?.n_samples ?? "?"} rows, {" "}
+                        {modelCard.data?.n_features ?? "?"} features
+                      </span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Silhouette / Dunn / DBI</span>
+                      <span>
+                        {formatMetric(modelCard.metrics?.silhouette)} / {" "}
+                        {formatMetric(modelCard.metrics?.dunn)} / {" "}
+                        {formatMetric(modelCard.metrics?.dbi)}
+                      </span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Bootstrap (rho / J@k / ARI)</span>
+                      <span>
+                        {formatMetric(
+                          modelCard.stability?.bootstrap_spearman_rho
+                        )} {" "}/ {" "}
+                        {formatMetric(
+                          modelCard.stability?.bootstrap_jaccard_at_k
+                        )} {" "}/ {formatMetric(
+                          modelCard.stability?.bootstrap_ari
+                        )}
+                      </span>
+                    </div>
+                    <div className="eco-row">
+                      <span>Seed / Noise rho</span>
+                      <span>
+                        {formatMetric(modelCard.stability?.seed_rho)} / {" "}
+                        {formatMetric(modelCard.stability?.noise_rho)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="eco-muted" style={{ marginTop: 16 }}>
+                    No trained model yet.
                   </div>
                 )}
-              </>
-            )}
-
-            {/* ───────── Audit TAB ───────── */}
-            {tab === "Audit" && (
-              <>
-                <div className="eco-card-head">
-                  <h3>
-                    <FaBalanceScale className="eco-icon-sm" /> Bias &amp; Audit
-                  </h3>
-                </div>
-                <p className="eco-muted">
-                  Snapshot of recent governance actions. This is a visual
-                  placeholder; later you can hook it to a real audit log API.
-                </p>
-                <ul className="eco-steps">
-                  <li>2025-02-24 — Model v1.2 activated</li>
-                  <li>2025-02-10 — IF threshold changed (0.75 → 0.78)</li>
-                  <li>2025-01-23 — Case #921 status: New → Scheduled</li>
-                </ul>
-                <div className="eco-actions">
-                  <button className="btn-outline">
-                    <FaShieldAlt /> View Full Audit
-                  </button>
+                {sortedModelHistory.length > 0 ? (
+                  <div
+                    className="eco-table compact"
+                    style={{
+                      marginTop: 20,
+                      fontSize: "0.8rem",
+                      overflowX: "auto",
+                    }}
+                  >
+                    <div className="eco-thead">
+                      <span>Version</span>
+                      <span>Mode</span>
+                      <span>Runtime (s)</span>
+                      <span>Silhouette</span>
+                      <span>Dunn</span>
+                      <span>DBI</span>
+                      <span>Spearman rho</span>
+                      <span>Jaccard@k</span>
+                      <span>ARI</span>
+                      <span>Trained at</span>
+                      <span>Status</span>
+                      <span>Action</span>
+                    </div>
+                    {sortedModelHistory.map((m) => {
+                      const isActive =
+                        Boolean(m.is_active) ||
+                        (modelCard && m.version === modelCard.version);
+                      return (
+                        <div className="eco-row" key={m.version}>
+                          <span>v{m.version}</span>
+                          <span>{m.mode}</span>
+                          <span>
+                            {m.duration_sec
+                              ? m.duration_sec.toFixed(1)
+                              : "-"}
+                          </span>
+                          <span>{formatMetric(m.metrics?.silhouette)}</span>
+                          <span>{formatMetric(m.metrics?.dunn)}</span>
+                          <span>{formatMetric(m.metrics?.dbi)}</span>
+                          <span>
+                            {formatMetric(
+                              m.stability?.bootstrap_spearman_rho
+                            )}
+                          </span>
+                          <span>
+                            {formatMetric(
+                              m.stability?.bootstrap_jaccard_at_k
+                            )}
+                          </span>
+                          <span>{formatMetric(m.stability?.bootstrap_ari)}</span>
+                          <span>
+                            {m.trained_at
+                              ? new Date(m.trained_at).toLocaleString()
+                              : "-"}
+                          </span>
+                          <span>
+                            {isActive ? (
+                              <span className="eco-badge">Active</span>
+                            ) : (
+                              "-"
+                            )}
+                          </span>
+                          <span>
+                            <button
+                              className="btn-outline"
+                              style={{ padding: "0.2rem 0.8rem" }}
+                              onClick={() => handleActivateVersion(m.version)}
+                              disabled={isActive || activatingVersion === m.version}
+                            >
+                              {isActive
+                                ? "Active"
+                                : activatingVersion === m.version
+                                ? "Activating..."
+                                : "Activate"}
+                            </button>
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="eco-muted" style={{ marginTop: 16 }}>
+                    No history yet. Run training to log model versions.
+                  </div>
+                )}
+                <div
+                  style={{
+                    marginTop: 24,
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                    gap: 16,
+                  }}
+                >
+                  <div className="eco-card glassy">
+                    <h5>PCA projection</h5>
+                    <p className="eco-muted" style={{ fontSize: "0.8rem" }}>
+                      2-D projection of latent features. Red points are flagged
+                      anomalies; blue are normal buildings.
+                    </p>
+                    <img
+                      src={`${API_BASE_URL}/static/current_pca_fused.png`}
+                      alt="PCA projection of fused model"
+                      style={{
+                        width: "100%",
+                        maxHeight: 260,
+                        objectFit: "contain",
+                        borderRadius: 12,
+                      }}
+                    />
+                  </div>
+                  <div className="eco-card glassy">
+                    <h5>Fused rank distribution</h5>
+                    <p className="eco-muted" style={{ fontSize: "0.8rem" }}>
+                      Distribution of fused anomaly scores. The red dashed line
+                      indicates the anomaly fraction cutoff.
+                    </p>
+                    <img
+                      src={`${API_BASE_URL}/static/current_fused_hist.png`}
+                      alt="Histogram of fused rank"
+                      style={{
+                        width: "100%",
+                        maxHeight: 260,
+                        objectFit: "contain",
+                        borderRadius: 12,
+                      }}
+                    />
+                  </div>
+                  <div className="eco-card glassy">
+                    <h5>Method metrics</h5>
+                    <p className="eco-muted" style={{ fontSize: "0.8rem" }}>
+                      Silhouette, Dunn, and DBI for each detector and the fused
+                      ensemble.
+                    </p>
+                    <img
+                      src={`${API_BASE_URL}/static/current_method_metrics.png`}
+                      alt="Unsupervised metrics per method"
+                      style={{
+                        width: "100%",
+                        maxHeight: 260,
+                        objectFit: "contain",
+                        borderRadius: 12,
+                      }}
+                    />
+                  </div>
                 </div>
               </>
             )}
@@ -844,3 +1114,7 @@ const AdminDashboard: React.FC = () => {
 };
 
 export default AdminDashboard;
+
+
+
+

@@ -1,44 +1,48 @@
 # backend/routers/ops_train.py
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, BackgroundTasks
 from redis import Redis
 from rq.job import Job
 
 from ..rq_connection import train_queue
 from ..deps import require_roles
 from ..ml.pipeline import run_full_training_pipeline
-from ..ml.registry import get_current_model_card, get_model_history
-
+from ..ml.registry import (
+    get_current_model_card,
+    get_model_history,
+    set_active_model_version,
+)
+from pydantic import BaseModel
+from uuid import uuid4
 router = APIRouter(
     prefix="/ops/train",
     tags=["Training Jobs"],
 )
-
-
-@router.post("")  # matches /ops/train
-def start_training(
-    mode: str = Query(
-        "moderate",
-        pattern="^(fast|moderate|slow|very_slow)$",
-    ),
-    _=Depends(require_roles("Admin")),
+from backend.ml.training_status import (
+    init_training_job,
+    get_training_status,
+)
+@router.post("")
+def start_train(
+    mode: str = Query("moderate"),
+    background_tasks: BackgroundTasks = None,
 ):
-    """
-    Enqueue a training job with the selected tuner mode.
+    job_id = str(uuid4())
+    init_training_job(job_id, mode)
 
-    mode is taken from the query string:
-      /ops/train?mode=fast|moderate|slow|very_slow
-    """
-    job = train_queue.enqueue(
-        run_full_training_pipeline,
-        mode,
-        job_timeout=86500,  # up to ~1 day
-    )
+    # run in background so request returns immediately
+    background_tasks.add_task(run_full_training_pipeline, job_id, mode)
 
-    return {"job_id": job.id, "status": "queued", "mode": mode}
+    return {
+        "job_id": job_id,
+        "status": "queued",
+        "mode": mode,
+    }
 
 
 @router.get("/{job_id}")
+def read_train_status(job_id: str):
+    return get_training_status(job_id)
 def get_job_status(
     job_id: str,
     _=Depends(require_roles("Admin")),
@@ -102,3 +106,19 @@ def get_model_history_route(
       data/model_registry/history.json
     """
     return get_model_history()
+
+
+class ActivateModelRequest(BaseModel):
+    version: int
+
+
+@router.post("/model/activate")
+def activate_model_version(
+    payload: ActivateModelRequest,
+    _=Depends(require_roles("Admin")),
+):
+    try:
+        card = set_active_model_version(payload.version)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return card

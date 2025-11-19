@@ -72,6 +72,10 @@ def save_new_model_version(
     else:
         hist = []
 
+    # mark existing entries as inactive
+    for entry in hist:
+        entry["is_active"] = False
+
     version = len(hist) + 1
 
     card = {
@@ -113,6 +117,8 @@ def save_new_model_version(
                      else None,
         },
     }
+    card["is_active"] = True
+    card["activated_at"] = _now_iso()
     generate_model_plots(scores_csv, REGISTRY_DIR)
 
 
@@ -140,3 +146,34 @@ def get_model_history() -> list[dict]:
         return []
     with open(HISTORY_FILE, "r") as f:
         return json.load(f)
+
+
+def set_active_model_version(version: int) -> dict:
+    """
+    Re-point the active model card to a specific historical version.
+    """
+    if not HISTORY_FILE.exists():
+        raise ValueError("No models have been registered yet")
+
+    with open(HISTORY_FILE, "r") as f:
+        hist = json.load(f)
+
+    target = None
+    for entry in hist:
+        if entry.get("version") == version:
+            entry["is_active"] = True
+            entry["activated_at"] = _now_iso()
+            target = entry
+        else:
+            entry["is_active"] = False
+
+    if target is None:
+        raise ValueError(f"Model version {version} not found")
+
+    REGISTRY_DIR.mkdir(parents=True, exist_ok=True)
+    with open(CURRENT_CARD, "w") as f:
+        json.dump(target, f, indent=2)
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(hist, f, indent=2)
+
+    return target

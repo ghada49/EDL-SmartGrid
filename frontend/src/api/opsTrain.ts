@@ -21,3 +21,8 @@ export async function getModelHistory() {
   const response = await client.get("/ops/train/model/history");
   return response.data;
 }
+
+export async function activateModelVersion(version: number) {
+  const response = await client.post("/ops/train/model/activate", { version });
+  return response.data;
+}
