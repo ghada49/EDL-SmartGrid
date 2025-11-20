@@ -1021,13 +1021,13 @@ const InspectorRoutes: React.FC = () => {
 
   const tabItems: { id: InspectorTab; label: string; content: React.ReactNode }[] = [
     { id: "calendar", label: "My Calendar", content: calendarCard },
+    { id: "cases", label: "My Cases", content: casesCard },
     {
       id: "map",
       label: "Map",
       // Render only when active to avoid Leaflet layout churn in hidden tabs.
       content: activeTab === "map" ? mapCard : null,
     },
-    { id: "cases", label: "My Cases", content: casesCard },
   ];
 
   return (

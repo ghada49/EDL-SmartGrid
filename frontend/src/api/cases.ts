@@ -16,6 +16,19 @@ export interface CreateCasePayload {
   inspector_id?: number
 }
 
+export interface CaseMapPoint {
+  case_id: number
+  building_id?: number | null
+  lat: number
+  lng: number
+  status: string
+  outcome?: string | null
+  feedback_label?: string | null
+  assigned_inspector_id?: string | null
+  inspector_name?: string | null
+  district?: string | null
+}
+
 export async function listCases(params: Record<string, string | number> = {}): Promise<Case[]> {
   const { data } = await api.get<Case[]>(`/cases/`, { params })
   return data
@@ -44,6 +57,11 @@ export async function updateCaseStatus(caseId: number, newStatus: string, actor?
   form.append('status', newStatus)
   if (actor) form.append('actor', actor)
   const { data } = await api.patch<{ id: number; status: string }>(`/cases/${caseId}/status`, form)
+  return data
+}
+
+export async function listCasesMap(): Promise<CaseMapPoint[]> {
+  const { data } = await api.get<CaseMapPoint[]>(`/cases/map`)
   return data
 }
 

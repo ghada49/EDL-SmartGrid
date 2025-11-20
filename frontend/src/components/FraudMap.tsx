@@ -26,6 +26,8 @@ type FraudMapProps = {
   loading: boolean;
   error: string | null;
   homeCoords?: { lat: number; lng: number } | null;
+  showRoutes?: boolean;
+  showHomeBase?: boolean;
 };
 
 // ---------------- FIT BOUNDS FIX --------------------
@@ -56,6 +58,8 @@ const FraudMap: React.FC<FraudMapProps> = ({
   loading,
   error,
   homeCoords,
+  showRoutes = true,
+  showHomeBase = true,
 }) => {
   const defaultCenter: [number, number] = [33.8938, 35.5018];
   const showEmpty = !loading && !error && points.length === 0;
@@ -80,6 +84,12 @@ const FraudMap: React.FC<FraudMapProps> = ({
   // ---------------- ROUTE FETCH --------------------
 
   useEffect(() => {
+    if (!showRoutes) {
+      setRouteCoords([]);
+      setRouteError(null);
+      return;
+    }
+
     if (!homeCoords || !orderedPoints.length) {
       setRouteCoords([]);
       setRouteError(
@@ -189,21 +199,22 @@ const FraudMap: React.FC<FraudMapProps> = ({
           ))}
 
           {/* ROUTES */}
-          {routeCoords.map((segment, idx) => (
-            <Polyline
-              key={`route-${idx}`}
-              positions={segment}
-              pathOptions={{
-                color: "#0f62fe",
-                weight: 5,
-                dashArray: "10 4",
-                opacity: 0.9,
-              }}
-            />
-          ))}
+          {showRoutes &&
+            routeCoords.map((segment, idx) => (
+              <Polyline
+                key={`route-${idx}`}
+                positions={segment}
+                pathOptions={{
+                  color: "#0f62fe",
+                  weight: 5,
+                  dashArray: "10 4",
+                  opacity: 0.9,
+                }}
+              />
+            ))}
 
           {/* HOME BASE */}
-          {homeCoords && (
+          {showHomeBase && homeCoords && (
             <CircleMarker
               center={[homeCoords.lat, homeCoords.lng]}
               radius={10}

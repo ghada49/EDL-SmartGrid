@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, List
 
 from fastapi import (
     APIRouter,
@@ -11,13 +11,27 @@ from fastapi import (
     Form,
 )
 from sqlalchemy.orm import Session, joinedload
+from pydantic import BaseModel
 
 from ..db import get_db
 from ..deps import require_roles
-from ..models import ops as models, Inspector, Appointment
+from ..models import ops as models, Inspector, Appointment, FeedbackLabel
 from ..models.user import User
 
 router = APIRouter(prefix="/cases", tags=["Cases"])
+
+
+class CaseMapPoint(BaseModel):
+    case_id: int
+    building_id: Optional[int]
+    lat: float
+    lng: float
+    status: str
+    outcome: Optional[str] = None
+    feedback_label: Optional[str] = None
+    assigned_inspector_id: Optional[str] = None
+    inspector_name: Optional[str] = None
+    district: Optional[str] = None
 
 
 # 1) Create new case (from anomaly / building)
@@ -112,6 +126,70 @@ def list_cases(
         }
         for c in cases
     ]
+
+
+@router.get(
+    "/map",
+    response_model=List[CaseMapPoint],
+    dependencies=[Depends(require_roles("Manager", "Admin"))],
+)
+def cases_map(db: Session = Depends(get_db)):
+    """
+    Lightweight map feed for managers: all cases that have building coordinates.
+    No filtering by status; includes latest assignment info if present.
+    """
+    rows = (
+        db.query(
+            models.Case.id.label("case_id"),
+            models.Case.building_id.label("building_id"),
+            models.Building.latitude.label("lat"),
+            models.Building.longitude.label("lng"),
+            models.Case.status.label("status"),
+            models.Case.outcome.label("outcome"),
+            models.Case.assigned_inspector_id.label("assigned_inspector_id"),
+            models.Building.district.label("district"),
+            FeedbackLabel.label.label("feedback_label"),
+        )
+        .join(models.Building, models.Case.building_id == models.Building.id)
+        .outerjoin(FeedbackLabel, FeedbackLabel.case_id == models.Case.id)
+        .filter(
+            models.Building.latitude.isnot(None),
+            models.Building.longitude.isnot(None),
+        )
+        .all()
+    )
+
+    # Prefetch inspector display names
+    uid_set = {r.assigned_inspector_id for r in rows if r.assigned_inspector_id}
+    inspector_names = {
+        u.id: (u.full_name or u.email)
+        for u in db.query(User).filter(User.id.in_(uid_set)).all()
+    } if uid_set else {}
+
+    # Deduplicate by case_id; prefer first feedback label if multiple
+    out_map: Dict[int, CaseMapPoint] = {}
+    for r in rows:
+        if r.lat is None or r.lng is None:
+            continue
+        if r.case_id in out_map:
+            # Keep existing, but fill feedback_label if missing
+            if out_map[r.case_id].feedback_label is None and r.feedback_label:
+                out_map[r.case_id].feedback_label = r.feedback_label
+            continue
+        out_map[r.case_id] = CaseMapPoint(
+            case_id=r.case_id,
+            building_id=r.building_id,
+            lat=float(r.lat),
+            lng=float(r.lng),
+            status=r.status or "New",
+            outcome=r.outcome,
+            feedback_label=r.feedback_label,
+            assigned_inspector_id=r.assigned_inspector_id,
+            inspector_name=inspector_names.get(r.assigned_inspector_id),
+            district=r.district,
+        )
+
+    return list(out_map.values())
 
 
 # 3) Assign / reassign inspector

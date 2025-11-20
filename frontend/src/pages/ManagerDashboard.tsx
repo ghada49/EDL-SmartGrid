@@ -19,7 +19,9 @@ import {
   reviewCase,
   addCaseComment,
   Case,
+  listCasesMap,
 } from "../api/cases";
+import FraudMap, { FraudPoint } from "../components/FraudMap";
 
 const CASE_STATUSES = ["New", "Scheduled", "Reported", "Closed"] as const;
 
@@ -91,6 +93,11 @@ const ManagerDashboard: React.FC = () => {
 
   const [commentNote, setCommentNote] = useState<string>("");
 
+  // MAP tab
+  const [mapPoints, setMapPoints] = useState<FraudPoint[]>([]);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+
   const loadCases = async () => {
     setLoadingCases(true);
     try {
@@ -136,10 +143,39 @@ const ManagerDashboard: React.FC = () => {
     | "Overview"
     | "Scheduling"
     | "Suggest & Assign"
+    | "Map"
     | "Reporting"
     | "Tickets"
     | "Case Management"
   >("Overview");
+
+  const loadMapPoints = async () => {
+    setMapLoading(true);
+    setMapError(null);
+    try {
+      const data = await listCasesMap();
+      setMapPoints(
+        data.map((d) => ({
+          case_id: d.case_id,
+          building_id: d.building_id ?? null,
+          lat: d.lat,
+          lng: d.lng,
+          status: d.status,
+          outcome: d.outcome,
+          feedback_label: d.feedback_label ?? null,
+        }))
+      );
+    } catch (err: any) {
+      setMapError(err?.message || "Failed to load map data.");
+      setMapPoints([]);
+    } finally {
+      setMapLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMapPoints();
+  }, []);
 
   return (
     <div className="ms-home eco-page">
@@ -162,6 +198,7 @@ const ManagerDashboard: React.FC = () => {
             "Reporting",
             "Tickets",
             "Case Management",
+            "Map",
           ]}
           active={tab}
           onChange={(t) => setTab(t as any)}
@@ -272,6 +309,30 @@ const ManagerDashboard: React.FC = () => {
               ))}
             </div>
           </section>
+        )}
+
+        {tab === "Map" && (
+          <div className="eco-card">
+            <div className="eco-card-head flex items-center justify-between gap-3">
+              <div>
+                <h3>Cases Map</h3>
+                <p className="eco-muted" style={{ margin: 0 }}>
+                  All cases with coordinates. No routes or home base overlays.
+                </p>
+              </div>
+              <button className="btn-outline sm" onClick={loadMapPoints} disabled={mapLoading}>
+                {mapLoading ? "Loading..." : "Reload"}
+              </button>
+            </div>
+            <FraudMap
+              points={mapPoints}
+              loading={mapLoading}
+              error={mapError}
+              homeCoords={null}
+              showRoutes={false}
+              showHomeBase={false}
+            />
+          </div>
         )}
 
         {/* CASE MODAL */}
