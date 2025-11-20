@@ -1,17 +1,17 @@
 // frontend/src/pages/InspectorRoutes.tsx
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import FraudMap, { FraudPoint } from "../components/FraudMap";
+
 import { useAuth } from "../context/AuthContext";
 import {
   FaMapMarkedAlt,
-  FaRoute,
   FaClipboardCheck,
   FaCalendarCheck,
   FaFilePdf,
   FaFileExcel,
 } from "react-icons/fa";
 
-// ---- existing case API helpers (from the first file) ----
+// ---- existing case API helpers ----
 import {
   listCases,
   Case,
@@ -23,7 +23,7 @@ import {
   submitInspectionReport,
 } from "../api/cases";
 
-// ---- local helper for inspector-specific endpoints (second file) ----
+// ---- local helper for inspector-specific endpoints ----
 const API_BASE =
   (import.meta as any)?.env?.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
@@ -84,7 +84,11 @@ async function getBlob(url: string, params?: Record<string, any>): Promise<Blob>
   return await res.blob();
 }
 
-// ---- inspector types (from second file) ----
+// ---- fraud map fetch ----
+async function getFraudMap(): Promise<FraudPoint[]> {
+  // returns only the authenticated inspector's assigned cases with coordinates
+  return await getJSON<FraudPoint[]>("/inspector/fraud-map/me");
+}
 
 type Appt = {
   id: number;
@@ -95,9 +99,7 @@ type Appt = {
   lat?: number;
   lng?: number;
 };
-
-type RoutePoint = { id: number; lat: number; lng: number; case_id: number; start?: string };
-type RouteOut = { clusters: RoutePoint[][]; ordered: RoutePoint[] };
+type WeekAppt = Appt & { day: string };
 
 type InspectorProfile = {
   id: number;
@@ -108,7 +110,7 @@ type InspectorProfile = {
   user_id?: string | null;
 };
 
-type InspectorTab = "calendar" | "route" | "home" | "cases";
+type InspectorTab = "calendar" | "map" | "cases";
 
 const INSPECTOR_CASE_STATUSES = ["Scheduled", "Reported"] as const;
 
@@ -126,9 +128,21 @@ function fmtHM(iso: string) {
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-function fmtTimeMaybe(iso?: string) {
-  if (!iso) return "--";
-  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function startOfWeekIso(date = new Date()): string {
+  const d = new Date(date);
+  const day = d.getDay() || 7; // Sunday -> 7
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - (day - 1));
+  return isoDay(d);
+}
+
+function weekDays(startIso: string): string[] {
+  const base = new Date(startIso);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(base);
+    d.setDate(base.getDate() + i);
+    return isoDay(d);
+  });
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -140,55 +154,45 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-// ---- TodaySchedule component (from second file) ----
+// ---- TodaySchedule component ----
 
 type TodayScheduleProps = {
   inspector: InspectorProfile | null;
-  onRoutesChange?: (routes: RouteOut | null) => void;
-  onRoutesLoadingChange?: (loading: boolean) => void;
 };
 
-const TodaySchedule: React.FC<TodayScheduleProps> = ({
-  inspector,
-  onRoutesChange,
-  onRoutesLoadingChange,
-}) => {
-  const today = useMemo(() => isoDay(new Date()), []);
-  const [selectedDay, setSelectedDay] = useState(today);
-  const [items, setItems] = useState<Appt[]>([]);
+const TodaySchedule: React.FC<TodayScheduleProps> = ({ inspector }) => {
+  const weekStart = useMemo(() => startOfWeekIso(new Date()), []);
+  const [selectedWeekStart, setSelectedWeekStart] = useState(weekStart);
+  const [items, setItems] = useState<WeekAppt[]>([]);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const daysInWeek = useMemo(() => weekDays(selectedWeekStart), [selectedWeekStart]);
 
   const load = useCallback(async () => {
     if (!inspector) {
       setItems([]);
       setErr(null);
-      onRoutesLoadingChange?.(false);
-      onRoutesChange?.(null);
       return;
     }
     try {
       setErr(null);
       setLoading(true);
-      onRoutesLoadingChange?.(true);
       const params: Record<string, string | number> = { inspector_id: inspector.id };
-      if (selectedDay) params.day = selectedDay;
-      const [schedule, route] = await Promise.all([
-        getJSON<Appt[]>("/inspector/schedule", params),
-        getJSON<RouteOut>("/inspector/routes", params),
-      ]);
-      setItems(schedule);
-      onRoutesChange?.(route);
+      const weekly = await Promise.all(
+        daysInWeek.map((day) => getJSON<Appt[]>("/inspector/schedule", { ...params, day }))
+      );
+      const merged: WeekAppt[] = weekly.flatMap((dayList, idx) =>
+        dayList.map((appt) => ({ ...appt, day: daysInWeek[idx] }))
+      );
+      setItems(merged);
     } catch (e: any) {
       setErr(e.message || String(e));
       setItems([]);
-      onRoutesChange?.(null);
     } finally {
       setLoading(false);
-      onRoutesLoadingChange?.(false);
     }
-  }, [inspector, onRoutesChange, onRoutesLoadingChange, selectedDay]);
+  }, [inspector, daysInWeek]);
 
   useEffect(() => {
     load();
@@ -280,15 +284,15 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({
     <div className="eco-card">
       <div className="eco-card-head flex items-center gap-3 flex-wrap">
         <h3>
-          <FaCalendarCheck className="eco-icon-sm" /> My Calendar (Today)
+          <FaCalendarCheck className="eco-icon-sm" /> My Calendar (This Week)
         </h3>
         <input
           type="date"
           className="eco-input w-[170px]"
-          value={selectedDay}
+          value={selectedWeekStart}
           onChange={(e) => {
             const val = e.target.value;
-            setSelectedDay(val || today);
+            setSelectedWeekStart(val ? startOfWeekIso(new Date(val)) : weekStart);
           }}
           disabled={!inspector}
         />
@@ -305,8 +309,10 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({
 
       {inspector && (
         <p className="eco-muted">
-          Showing visits for <strong>{inspector.name}</strong>{" "}
-          {selectedDay ? `(${selectedDay})` : ""}
+          Showing week for <strong>{inspector.name}</strong>{" "}
+          {daysInWeek.length
+            ? `(${daysInWeek[0]} to ${daysInWeek[daysInWeek.length - 1]})`
+            : ""}
         </p>
       )}
 
@@ -318,6 +324,7 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({
 
       <div className="eco-table compact">
         <div className="eco-thead">
+          <span>Date</span>
           <span>Time</span>
           <span>Case</span>
           <span>Status</span>
@@ -329,11 +336,13 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({
             <span>--</span>
             <span>--</span>
             <span>--</span>
+            <span>--</span>
           </div>
         )}
         {inspector &&
           items.map((a) => (
-            <div className="eco-row" key={a.id}>
+            <div className="eco-row" key={`${a.id}-${a.day}`}>
+              <span>{new Date(a.day).toLocaleDateString()}</span>
               <span>
                 {fmtHM(a.start)} - {fmtHM(a.end)}
               </span>
@@ -392,111 +401,15 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({
   );
 };
 
-// ---- RouteSummaryCard (from second file) ----
-
-const RouteSummaryCard: React.FC<{
-  routes: RouteOut | null;
-  loading: boolean;
-  inspector: InspectorProfile | null;
-}> = ({ routes, loading, inspector }) => {
-  const hasVisits = !!routes && routes.ordered.length > 0;
-
-  const downloadCsv = () => {
-    if (!routes || !routes.ordered.length) return;
-    const header = "order,appointment_id,case_id,start_time\n";
-    const rows = routes.ordered
-      .map(
-        (p, idx) =>
-          `${idx + 1},${p.id},${p.case_id},${p.start ? new Date(p.start).toISOString() : ""}`
-      )
-      .join("\n");
-    const blob = new Blob([header + rows], { type: "text/csv" });
-    downloadBlob(blob, `route_${isoDay()}.csv`);
-  };
-
-  return (
-    <div className="eco-card">
-      <div className="eco-card-head">
-        <h3>
-          <FaRoute className="eco-icon-sm" /> Today's Route
-        </h3>
-        <span className="eco-chip">
-          {loading ? "Refreshing" : hasVisits ? "Optimized" : "Idle"}
-        </span>
-      </div>
-
-      {!inspector && (
-        <p className="eco-muted">Link this login to an inspector to see optimized routes.</p>
-      )}
-
-      {inspector && (
-        <>
-          {loading && <p className="eco-muted">Crunching route for {inspector.name}...</p>}
-          {!loading && !hasVisits && (
-            <p className="eco-muted">No visits scheduled for today. Enjoy the breather!</p>
-          )}
-          {hasVisits && routes && (
-            <>
-              <p className="eco-muted">
-                Ordered by proximity + start time for <strong>{inspector.name}</strong>.
-              </p>
-              <ol className="eco-steps">
-                {routes.ordered.map((stop, idx) => (
-                  <li key={stop.id}>
-                    {idx + 1}. {fmtTimeMaybe(stop.start)} — Case #{stop.case_id} (appt {stop.id})
-                  </li>
-                ))}
-              </ol>
-
-              {routes.clusters.length > 0 && (
-                <>
-                  <h4>Grouped Nearby Stops</h4>
-                  <ol className="eco-steps">
-                    {routes.clusters.map((cluster, idx) => (
-                      <li key={idx}>
-                        Cluster {idx + 1}: {cluster.map((p) => `#${p.case_id}`).join(", ")}
-                      </li>
-                    ))}
-                  </ol>
-                </>
-              )}
-            </>
-          )}
-
-          <div className="eco-actions">
-            <button className="btn-eco" onClick={downloadCsv} disabled={!hasVisits}>
-              Download Route CSV
-            </button>
-            <Link to="/inspections/new" className="btn-outline">
-              Assign Extra Stop
-            </Link>
-          </div>
-
-          <div className="eco-map">
-            <FaMapMarkedAlt size={28} />
-            <span>
-              {hasVisits
-                ? `${routes?.ordered.length ?? 0} stop(s) ready to plot on the map.`
-                : "Map will render once you have visits."}
-            </span>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
-// ---- MAIN PAGE COMPONENT (merged) ----
+// ---- MAIN PAGE COMPONENT ----
 
 const InspectorRoutes: React.FC = () => {
   const { role, user_id } = useAuth(); // need both: role (new) + user_id (old myCases API)
 
-  // inspector profile + route state (from second file)
+  // inspector profile state
   const [profile, setProfile] = useState<InspectorProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
-  const [routesSnapshot, setRoutesSnapshot] = useState<RouteOut | null>(null);
-  const [routesLoading, setRoutesLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<InspectorTab>("calendar");
   const [homeLatInput, setHomeLatInput] = useState("");
   const [homeLngInput, setHomeLngInput] = useState("");
@@ -504,7 +417,17 @@ const InspectorRoutes: React.FC = () => {
   const [homeStatus, setHomeStatus] = useState<string | null>(null);
   const [homeError, setHomeError] = useState<string | null>(null);
 
-  // "My Cases" panel state (from first file)
+  // fraud map state (for THIS inspector's cases only)
+  const [fraudPoints, setFraudPoints] = useState<FraudPoint[]>([]);
+  const [fraudLoading, setFraudLoading] = useState(false);
+  const [fraudError, setFraudError] = useState<string | null>(null);
+  const homeCoords = useMemo(() => {
+    if (!profile) return null;
+    if (profile.home_lat == null || profile.home_lng == null) return null;
+    return { lat: profile.home_lat, lng: profile.home_lng };
+  }, [profile]);
+
+  // "My Cases" panel state
   const [myCases, setMyCases] = useState<Case[]>([]);
   const [casesLoading, setCasesLoading] = useState(false);
   const [openDetailId, setOpenDetailId] = useState<number | null>(null);
@@ -514,7 +437,10 @@ const InspectorRoutes: React.FC = () => {
   const [flashByCase, setFlashByCase] = useState<Record<number, string>>({});
   const [readingByCase, setReadingByCase] = useState<Record<number, string>>({});
   const [reportsByCase, setReportsByCase] = useState<
-    Record<number, { findings?: string | null; recommendation?: string | null; submittedAt?: string | null } | null>
+    Record<
+      number,
+      { findings?: string | null; recommendation?: string | null; submittedAt?: string | null } | null
+    >
   >({});
   const reportsLoadingRef = useRef<Set<number>>(new Set());
   const [caseStatusFilter, setCaseStatusFilter] = useState<
@@ -550,6 +476,7 @@ const InspectorRoutes: React.FC = () => {
     }
   };
 
+  // pre-load last reports for reported cases
   useEffect(() => {
     myCases
       .filter((c) => c.status === "Reported" && reportsByCase[c.id] === undefined)
@@ -582,7 +509,7 @@ const InspectorRoutes: React.FC = () => {
       });
   }, [myCases, reportsByCase]);
 
-  // ---- load inspector profile ----
+  // load inspector profile
   useEffect(() => {
     let cancelled = false;
     const loadProfile = async () => {
@@ -618,6 +545,7 @@ const InspectorRoutes: React.FC = () => {
     };
   }, [role]);
 
+  // sync home base inputs
   useEffect(() => {
     if (profile) {
       setHomeLatInput(
@@ -631,17 +559,70 @@ const InspectorRoutes: React.FC = () => {
           : String(profile.home_lng)
       );
     }
-  }, [profile?.home_lat, profile?.home_lng]);
+  }, [profile]);
+
+  // load "My Cases" list (assigned to this inspector's user_id)
+  useEffect(() => {
+    const loadCases = async () => {
+      if (!user_id) return;
+      setCasesLoading(true);
+      try {
+        const rows = await listCases({ inspector_id: user_id });
+        setMyCases(rows);
+      } catch (e) {
+        console.error("Failed to load inspector cases", e);
+      } finally {
+        setCasesLoading(false);
+      }
+    };
+    loadCases();
+  }, [user_id]);
+
+  // fetch fraud map points once the inspector profile exists
+  useEffect(() => {
+    if (!profile) {
+      setFraudPoints([]);
+      return;
+    }
+
+    let cancelled = false;
+    const loadFraudForInspector = async () => {
+      setFraudLoading(true);
+      setFraudError(null);
+      try {
+        const inspectorPoints = await getFraudMap();
+        if (!cancelled) {
+          const filtered = inspectorPoints.filter(
+            (p) => typeof p.lat === "number" && typeof p.lng === "number"
+          );
+          setFraudPoints(filtered);
+        }
+      } catch (e: any) {
+        console.error("Failed to load fraud map for inspector", e);
+        if (!cancelled) {
+          setFraudError(e.message || String(e));
+          setFraudPoints([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setFraudLoading(false);
+        }
+      }
+    };
+
+    loadFraudForInspector();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile]);
 
   const saveHomeBase = async () => {
     if (!profile) return;
     setHomeError(null);
     setHomeStatus(null);
 
-    const latVal =
-      homeLatInput.trim() === "" ? null : Number(homeLatInput.trim());
-    const lngVal =
-      homeLngInput.trim() === "" ? null : Number(homeLngInput.trim());
+    const latVal = homeLatInput.trim() === "" ? null : Number(homeLatInput.trim());
+    const lngVal = homeLngInput.trim() === "" ? null : Number(homeLngInput.trim());
 
     if (latVal !== null && Number.isNaN(latVal)) {
       setHomeError("Latitude must be a valid number.");
@@ -668,81 +649,95 @@ const InspectorRoutes: React.FC = () => {
     }
   };
 
-  // ---- load "My Cases" list (from first file) ----
-  useEffect(() => {
-    const loadCases = async () => {
-      if (!user_id) return;
-      setCasesLoading(true);
-      try {
-        const rows = await listCases({ inspector_id: user_id });
-        setMyCases(rows);
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error("Failed to load inspector cases", e);
-      } finally {
-        setCasesLoading(false);
-      }
-    };
-    loadCases();
-  }, [user_id]);
+  const calendarCard = <TodaySchedule inspector={profile} />;
 
-  const calendarCard = (
-    <TodaySchedule
-      inspector={profile}
-      onRoutesChange={setRoutesSnapshot}
-      onRoutesLoadingChange={setRoutesLoading}
-    />
-  );
-
-  const routeCard = (
-    <RouteSummaryCard routes={routesSnapshot} loading={routesLoading} inspector={profile} />
+  const mapCard = (
+    <div className="eco-card">
+      <div className="eco-card-head">
+        <h3>
+          <FaMapMarkedAlt className="eco-icon-sm" /> Map
+        </h3>
+      </div>
+      <FraudMap
+        points={fraudPoints}
+        loading={fraudLoading}
+        error={fraudError}
+        homeCoords={homeCoords}
+      />
+    </div>
   );
 
   const homeCard = (
     <div className="eco-card">
-      <div className="eco-card-head">
+      <div className="eco-card-head flex items-center justify-between gap-3">
         <h3>
           <FaMapMarkedAlt className="eco-icon-sm" /> Home Base
         </h3>
+
+        {profile && (
+          <div className="inspector-chip">
+            <span className="inspector-dot" />
+            <div className="inspector-chip-text">
+              <span className="inspector-chip-name">{profile.name}</span>
+              <span className="inspector-chip-role">Inspector</span>
+            </div>
+          </div>
+        )}
       </div>
+
       {!profile && (
         <p className="eco-muted">
           Sign in as an inspector to manage your profile and home coordinates.
         </p>
       )}
+
       {profile && (
         <>
           <p className="eco-muted">
-            Used for proximity-based suggestions shown to managers. Leave blank if you do not
-            wish to disclose your home location.
+            Used to suggest nearby visits to your managers. Leave blank if you don&apos;t want
+            to share your home location.
           </p>
-          <label className="block mt-2">
-            Latitude
-            <input
-              className="eco-input mt-1"
-              type="number"
-              step="0.0001"
-              placeholder="33.8938"
-              value={homeLatInput}
-              onChange={(e) => setHomeLatInput(e.target.value)}
-            />
-          </label>
-          <label className="block mt-3">
-            Longitude
-            <input
-              className="eco-input mt-1"
-              type="number"
-              step="0.0001"
-              placeholder="35.5018"
-              value={homeLngInput}
-              onChange={(e) => setHomeLngInput(e.target.value)}
-            />
-          </label>
-          <button className="btn-eco mt-4" onClick={saveHomeBase} disabled={homeSaving}>
-            {homeSaving ? "Saving..." : "Save Home Location"}
-          </button>
-          {homeStatus && <p className="text-green-700 mt-2 text-sm">{homeStatus}</p>}
-          {homeError && <p className="text-red-600 mt-2 text-sm">{homeError}</p>}
+
+          <div className="home-base-grid">
+            <label className="block mt-2">
+              <span className="block text-sm font-medium text-gray-700">Latitude</span>
+              <input
+                className="eco-input mt-1"
+                type="number"
+                step="0.0001"
+                placeholder="33.8938"
+                value={homeLatInput}
+                onChange={(e) => setHomeLatInput(e.target.value)}
+              />
+            </label>
+
+            <label className="block mt-2">
+              <span className="block text-sm font-medium text-gray-700">Longitude</span>
+              <input
+                className="eco-input mt-1"
+                type="number"
+                step="0.0001"
+                placeholder="35.5018"
+                value={homeLngInput}
+                onChange={(e) => setHomeLngInput(e.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="home-base-actions">
+            <button className="btn-eco sm" onClick={saveHomeBase} disabled={homeSaving}>
+              {homeSaving ? "Saving..." : "Save Home Location"}
+            </button>
+          </div>
+
+          {homeStatus && <p className="text-green-700 mt-2 text-xs">{homeStatus}</p>}
+          {homeError && <p className="text-red-600 mt-2 text-xs">{homeError}</p>}
+
+          {profile.home_lat != null && profile.home_lng != null && !homeStatus && !homeError && (
+            <p className="eco-muted mt-2 text-xs">
+              Home base set. Routes may be optimized relative to this point.
+            </p>
+          )}
         </>
       )}
     </div>
@@ -752,7 +747,7 @@ const InspectorRoutes: React.FC = () => {
     caseStatusFilter == null ? myCases : myCases.filter((c) => c.status === caseStatusFilter);
 
   const casesCard = (
-  <div className="eco-card inspector-cases">
+    <div className="eco-card inspector-cases">
       <div className="eco-card-head">
         <h3>
           <FaClipboardCheck className="eco-icon-sm" /> My Cases
@@ -804,7 +799,6 @@ const InspectorRoutes: React.FC = () => {
                             try {
                               setDetail(await getCaseDetail(c.id));
                             } catch (err) {
-                              // eslint-disable-next-line no-console
                               console.error(err);
                             }
                           }
@@ -1027,14 +1021,17 @@ const InspectorRoutes: React.FC = () => {
 
   const tabItems: { id: InspectorTab; label: string; content: React.ReactNode }[] = [
     { id: "calendar", label: "My Calendar", content: calendarCard },
-    { id: "route", label: "Today's Route", content: routeCard },
-    { id: "home", label: "Home Base", content: homeCard },
+    {
+      id: "map",
+      label: "Map",
+      // Render only when active to avoid Leaflet layout churn in hidden tabs.
+      content: activeTab === "map" ? mapCard : null,
+    },
     { id: "cases", label: "My Cases", content: casesCard },
   ];
 
   return (
     <div className="eco-page">
-
       <header className="eco-hero">
         <h1 className="eco-title">Inspector Console</h1>
         <p className="eco-sub">
@@ -1053,32 +1050,41 @@ const InspectorRoutes: React.FC = () => {
         </div>
       )}
 
-      <div className="eco-tabs" role="tablist" aria-label="Inspector tools">
-        {tabItems.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={`eco-tab ${activeTab === tab.id ? "eco-tab--active" : ""}`}
-            onClick={() => setActiveTab(tab.id)}
-            role="tab"
-            aria-selected={activeTab === tab.id}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="eco-tab-panels">
-        {tabItems.map((tab) => (
-          <div
-            key={tab.id}
-            className={`eco-tab-panel ${activeTab === tab.id ? "eco-tab-panel--active" : ""}`}
-            role="tabpanel"
-            hidden={activeTab !== tab.id}
-          >
-            {tab.content}
+      {/* Two-column layout: tools + sidebar */}
+      <div className="inspector-layout">
+        <div className="inspector-main">
+          <div className="eco-tabs" role="tablist" aria-label="Inspector tools">
+            {tabItems.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`eco-tab ${activeTab === tab.id ? "eco-tab--active" : ""}`}
+                onClick={() => setActiveTab(tab.id)}
+                role="tab"
+                aria-selected={activeTab === tab.id}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        ))}
+
+          <div className="eco-tab-panels">
+            {tabItems.map((tab) => (
+              <div
+                key={tab.id}
+                className={`eco-tab-panel ${
+                  activeTab === tab.id ? "eco-tab-panel--active" : ""
+                }`}
+                role="tabpanel"
+                hidden={activeTab !== tab.id}
+              >
+                {tab.content}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <aside className="inspector-sidebar">{homeCard}</aside>
       </div>
     </div>
   );

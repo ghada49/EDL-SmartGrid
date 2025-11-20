@@ -1269,3 +1269,63 @@ body > header:first-of-type {
   object-fit: contain;
   border-radius: 8px;
 }
+.inspector-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(260px, 1fr);
+  gap: 24px;
+  align-items: flex-start;
+  margin-top: 16px;
+}
+
+.inspector-main {
+  min-width: 0;
+}
+
+.inspector-sidebar {
+  position: sticky;
+  top: 150px; /* adjust to match your header height */
+}
+.home-base-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.inspector-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #ecfdf3; /* soft green */
+  border: 1px solid #c4e3cf;
+  font-size: 0.8rem;
+}
+
+.inspector-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #16a34a; /* active green */
+}
+
+.inspector-chip-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.inspector-chip-name {
+  font-weight: 600;
+}
+
+.inspector-chip-role {
+  font-size: 0.7rem;
+  color: #4b5563;
+}
+.home-base-actions {
+  margin-top: 20px;        /* increase spacing from inputs */
+  display: flex;
+  justify-content: center; /* center the button */
+}

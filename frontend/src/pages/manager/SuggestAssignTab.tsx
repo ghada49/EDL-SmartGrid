@@ -34,7 +34,21 @@ export default function SuggestAssignTab(){
     if(!start||!end){ setAssignError('Pick start and end times.'); return; }
     setAssignError(null);
     try {
-      await assignVisit({case_id:Number(caseId), inspector_id:id, start_time:new Date(start).toISOString(), end_time:new Date(end).toISOString()});
+      const payload: any = {
+        case_id: Number(caseId),
+        inspector_id: id,
+        start_time: new Date(start).toISOString(),
+        end_time: new Date(end).toISOString(),
+      };
+      if (lat.trim() !== "" && lng.trim() !== "") {
+        const parsedLat = Number(lat);
+        const parsedLng = Number(lng);
+        if (!Number.isNaN(parsedLat) && !Number.isNaN(parsedLng)) {
+          payload.target_lat = parsedLat;
+          payload.target_lng = parsedLng;
+        }
+      }
+      await assignVisit(payload);
       alert('Appointment created.');
     } catch (err:any) {
       const detail = err?.response?.data?.detail || err?.message || 'Failed to assign';

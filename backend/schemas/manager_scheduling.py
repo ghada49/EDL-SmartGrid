@@ -50,6 +50,8 @@ class AssignRequest(BaseModel):
     start_time: datetime
     end_time: datetime
     notes: Optional[str] = None
+    target_lat: Optional[float] = Field(default=None, ge=-90.0, le=90.0)
+    target_lng: Optional[float] = Field(default=None, ge=-180.0, le=180.0)
 
 class RescheduleRequest(BaseModel):
     start_time: datetime

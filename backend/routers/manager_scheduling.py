@@ -181,6 +181,23 @@ def assign_visit(req: AssignRequest, db: Session = Depends(get_db)):
         c.assigned_inspector_id = ins.user_id
     
 
+    if req.target_lat is not None and req.target_lng is not None:
+        if c.building_id:
+            building = db.query(Building).get(c.building_id)
+            if building:
+                building.latitude = req.target_lat
+                building.longitude = req.target_lng
+        else:
+            placeholder = Building(
+                building_name=getattr(c, "title", None) or f"Case #{c.id}",
+                latitude=req.target_lat,
+                longitude=req.target_lng,
+                district=getattr(c, "district", None),
+            )
+            db.add(placeholder)
+            db.flush()
+            c.building_id = placeholder.id
+
     ap = Appointment(
         case_id=req.case_id,
         inspector_id=req.inspector_id,

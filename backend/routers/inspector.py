@@ -1,5 +1,7 @@
 # backend/routers/inspector.py
 # backend/routers/inspector.py
+from ..models import Appointment, Building, Case, Inspector, FeedbackLabel
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
@@ -15,11 +17,23 @@ from ..db import get_db
 from ..deps import get_current_user
 from ..models import Appointment, Case, Inspector, FeedbackLabel  # Case for joins
 from ..models.user import User
+from ..models.ops import Building
 
 router = APIRouter()  # prefix is added in main/app when mounting
 
-
 # ---------- Schemas ----------
+class FraudMapPoint(BaseModel):
+    case_id: int
+    building_id: Optional[int]
+    lat: float
+    lng: float
+    status: str
+    outcome: Optional[str] = None
+    feedback_label: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 class ApptOut(BaseModel):
     id: int
     case_id: int
@@ -480,6 +494,114 @@ def inspector_summary(
         fraud_detected=int(fraud_detected),
         visits_today=int(visits_today),
     )
+
+@router.get("/fraud-map", response_model=List[FraudMapPoint], tags=["Inspector"])
+def fraud_map(
+    inspector_id: Optional[int] = Query(
+        None, description="Inspector ID (optional when authenticated as an inspector)"
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Return ALL cases assigned to this inspector that have a building with lat/lng.
+    Fraud info (outcome/feedback_label) is included only for styling on the map.
+    """
+    # If logged in as Inspector with no inspector_id param,
+    # this resolves to the linked inspector's id
+    target_id = _resolve_inspector_id(db, current_user, inspector_id)
+
+    rows = (
+        db.query(
+            Case.id.label("case_id"),
+            Case.building_id.label("building_id"),
+            Building.latitude.label("lat"),
+            Building.longitude.label("lng"),
+            Case.status.label("status"),
+            Case.outcome.label("outcome"),
+            FeedbackLabel.label.label("feedback_label"),
+        )
+        # only cases that have an appointment for THIS inspector
+        .join(Appointment, Appointment.case_id == Case.id)
+        .join(Building, Case.building_id == Building.id)
+        .outerjoin(FeedbackLabel, FeedbackLabel.case_id == Case.id)
+        .filter(
+            Appointment.inspector_id == target_id,
+            Building.latitude.isnot(None),
+            Building.longitude.isnot(None),
+        )
+        .all()
+    )
+
+    points: List[FraudMapPoint] = []
+    for r in rows:
+        if r.lat is None or r.lng is None:
+            continue
+        points.append(
+            FraudMapPoint(
+                case_id=r.case_id,
+                building_id=r.building_id,
+                lat=float(r.lat),
+                lng=float(r.lng),
+                status=r.status or "New",
+                outcome=r.outcome,
+                feedback_label=r.feedback_label,
+            )
+        )
+
+    return points
+@router.get("/fraud-map/me", response_model=List[FraudMapPoint], tags=["Inspector"])
+def fraud_map_me(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Return ALL cases that are assigned to the current inspector (via Case.assigned_inspector_id)
+    and have a building with lat/lng. Does NOT depend on case status.
+    Fraud info is only for styling on the map.
+    """
+    # Find which inspector is linked to this user
+    inspector = _get_linked_inspector(db, current_user)
+    if not inspector.user_id:
+        raise HTTPException(status_code=400, detail="Inspector is not linked to a user account")
+
+    rows = (
+        db.query(
+            Case.id.label("case_id"),
+            Case.building_id.label("building_id"),
+            Building.latitude.label("lat"),
+            Building.longitude.label("lng"),
+            Case.status.label("status"),
+            Case.outcome.label("outcome"),
+            FeedbackLabel.label.label("feedback_label"),
+        )
+        .join(Building, Case.building_id == Building.id)
+        .outerjoin(FeedbackLabel, FeedbackLabel.case_id == Case.id)
+        .filter(
+            Case.assigned_inspector_id == inspector.user_id,
+            Building.latitude.isnot(None),
+            Building.longitude.isnot(None),
+        )
+        .all()
+    )
+
+    points: List[FraudMapPoint] = []
+    for r in rows:
+        if r.lat is None or r.lng is None:
+            continue
+        points.append(
+            FraudMapPoint(
+                case_id=r.case_id,
+                building_id=r.building_id,
+                lat=float(r.lat),
+                lng=float(r.lng),
+                status=r.status or "New",
+                outcome=r.outcome,
+                feedback_label=r.feedback_label,
+            )
+        )
+
+    return points
 
 
 @router.get("/reports/weekly.xlsx", tags=["Inspector"])

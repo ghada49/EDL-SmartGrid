@@ -67,7 +67,13 @@ export async function suggest(req: SuggestReq): Promise<Suggestion[]> {
   const {data} = await api.post('/manager/scheduling/suggest', req); return data;
 }
 export async function assignVisit(body: {
-  case_id: number; inspector_id: number; start_time: string; end_time: string; notes?: string;
+  case_id: number;
+  inspector_id: number;
+  start_time: string;
+  end_time: string;
+  notes?: string;
+  target_lat?: number;
+  target_lng?: number;
 }): Promise<Appointment> {
   const {data} = await api.post('/manager/scheduling/assign', body); return data;
 }
