@@ -9,6 +9,8 @@ import {
   FaCalendarCheck,
   FaFilePdf,
   FaFileExcel,
+  FaUserCircle,
+  FaTimes,
 } from "react-icons/fa";
 
 // ---- existing case API helpers ----
@@ -416,6 +418,7 @@ const InspectorRoutes: React.FC = () => {
   const [homeSaving, setHomeSaving] = useState(false);
   const [homeStatus, setHomeStatus] = useState<string | null>(null);
   const [homeError, setHomeError] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // fraud map state (for THIS inspector's cases only)
   const [fraudPoints, setFraudPoints] = useState<FraudPoint[]>([]);
@@ -1030,8 +1033,49 @@ const InspectorRoutes: React.FC = () => {
     },
   ];
 
+  const settingsDrawer = (
+    <div className={`settings-drawer ${settingsOpen ? "open" : ""}`} aria-hidden={!settingsOpen}>
+      <div className="settings-drawer__backdrop" onClick={() => setSettingsOpen(false)} />
+      <div
+        className="settings-drawer__panel"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Inspector settings"
+      >
+        <div className="settings-drawer__header">
+          <div className="settings-drawer__title">
+            <FaUserCircle className="settings-drawer__avatar" />
+            <div>
+              <div className="settings-drawer__eyebrow">Inspector</div>
+              <div className="settings-drawer__name">{profile?.name || "Your profile"}</div>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="settings-drawer__close"
+            aria-label="Close settings"
+            onClick={() => setSettingsOpen(false)}
+          >
+            <FaTimes />
+          </button>
+        </div>
+        <div className="settings-drawer__body">{homeCard}</div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="eco-page">
+      <div className="inspector-toolbar">
+        <button
+          type="button"
+          className="profile-trigger"
+          aria-label="Inspector settings"
+          onClick={() => setSettingsOpen(true)}
+        >
+          <FaUserCircle />
+        </button>
+      </div>
       <header className="eco-hero">
         <h1 className="eco-title">Inspector Console</h1>
         <p className="eco-sub">
@@ -1050,8 +1094,8 @@ const InspectorRoutes: React.FC = () => {
         </div>
       )}
 
-      {/* Two-column layout: tools + sidebar */}
-      <div className="inspector-layout">
+      {/* Main tools */}
+      <div className="inspector-layout single">
         <div className="inspector-main">
           <div className="eco-tabs" role="tablist" aria-label="Inspector tools">
             {tabItems.map((tab) => (
@@ -1083,9 +1127,8 @@ const InspectorRoutes: React.FC = () => {
             ))}
           </div>
         </div>
-
-        <aside className="inspector-sidebar">{homeCard}</aside>
       </div>
+      {settingsDrawer}
     </div>
   );
 };

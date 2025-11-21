@@ -1277,6 +1277,10 @@ body > header:first-of-type {
   margin-top: 16px;
 }
 
+.inspector-layout.single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .inspector-main {
   min-width: 0;
 }
@@ -1328,4 +1332,139 @@ body > header:first-of-type {
   margin-top: 20px;        /* increase spacing from inputs */
   display: flex;
   justify-content: center; /* center the button */
+}
+
+.assign-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f3f7f3;
+  border: 1px solid #dbe7dc;
+  color: #1b5e20;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.inspector-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 16px 0;
+}
+
+.profile-trigger {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(16, 86, 48, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #1b5e20;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.profile-trigger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  background: #f8fcf9;
+}
+
+.settings-drawer {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  pointer-events: none;
+}
+
+.settings-drawer__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.settings-drawer__panel {
+  position: absolute;
+  top: 0;
+  right: -440px;
+  width: min(420px, 90vw);
+  height: 100%;
+  background: #ffffff;
+  box-shadow: -16px 0 40px rgba(0, 0, 0, 0.12);
+  border-left: 1px solid rgba(165, 214, 167, 0.4);
+  padding: 18px 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: right 0.3s ease;
+}
+
+.settings-drawer.open {
+  pointer-events: auto;
+}
+
+.settings-drawer.open .settings-drawer__backdrop {
+  opacity: 1;
+}
+
+.settings-drawer.open .settings-drawer__panel {
+  right: 0;
+}
+
+.settings-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.settings-drawer__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.settings-drawer__avatar {
+  width: 32px;
+  height: 32px;
+  color: #1b5e20;
+}
+
+.settings-drawer__eyebrow {
+  font-size: 0.72rem;
+  color: #4b5563;
+  letter-spacing: 0.02em;
+}
+
+.settings-drawer__name {
+  font-weight: 700;
+  color: #0f3d27;
+}
+
+.settings-drawer__close {
+  background: transparent;
+  border: none;
+  color: #1b5e20;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.settings-drawer__close:hover {
+  background: #f1f5f2;
+}
+
+.settings-drawer__body {
+  overflow-y: auto;
+  padding-bottom: 6px;
 }

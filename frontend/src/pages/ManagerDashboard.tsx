@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { listUsers, updateUserRole, UserRow } from "../api/users";
 import { useAuth } from "../context/AuthContext";
 import TicketManagementPanel from "./TicketManagementPanel";
@@ -6,7 +6,6 @@ import TicketManagementPanel from "./TicketManagementPanel";
 import { Tabs } from "../components/Tabs";
 import OverviewTab from "./manager/OverviewTab";
 import SchedulingTab from "./manager/SchedulingTab";
-import SuggestAssignTab from "./manager/SuggestAssignTab";
 import ReportingTab from "./manager/ReportingTab";
 import FeedbackPanel from "../components/FeedbackPanel";
 
@@ -14,7 +13,6 @@ import { uploadDataset, getDatasetHistory, DQ } from "../api/ops";
 
 import {
   listCases,
-  assignInspector,
   getCaseDetail,
   reviewCase,
   addCaseComment,
@@ -22,6 +20,7 @@ import {
   listCasesMap,
 } from "../api/cases";
 import FraudMap, { FraudPoint } from "../components/FraudMap";
+import { assignVisit, suggest, Suggestion } from "../api/scheduling";
 
 const CASE_STATUSES = ["New", "Scheduled", "Reported", "Closed"] as const;
 
@@ -98,6 +97,18 @@ const ManagerDashboard: React.FC = () => {
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
+  // Suggest & Assign (moved into Case Management)
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assignCaseId, setAssignCaseId] = useState<number | null>(null);
+  const [assignLat, setAssignLat] = useState("");
+  const [assignLng, setAssignLng] = useState("");
+  const [assignStrategy, setAssignStrategy] = useState<"proximity" | "workload">("proximity");
+  const [assignTopK, setAssignTopK] = useState(5);
+  const [assignStart, setAssignStart] = useState("");
+  const [assignEnd, setAssignEnd] = useState("");
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [assignError, setAssignError] = useState<string | null>(null);
+
   const loadCases = async () => {
     setLoadingCases(true);
     try {
@@ -142,7 +153,6 @@ const ManagerDashboard: React.FC = () => {
   const [tab, setTab] = useState<
     | "Overview"
     | "Scheduling"
-    | "Suggest & Assign"
     | "Map"
     | "Reporting"
     | "Tickets"
@@ -177,6 +187,89 @@ const ManagerDashboard: React.FC = () => {
     loadMapPoints();
   }, []);
 
+  const caseLabel = useMemo(
+    () =>
+      new Map(
+        cases.map((c) => [
+          c.id,
+          `Case #${c.id}${c.district ? ` - ${c.district}` : ""} (${c.status})`,
+        ])
+      ),
+    [cases]
+  );
+
+  const openAssignModal = (c: Case) => {
+    setAssignCaseId(c.id);
+    const match = mapPoints.find((p) => p.case_id === c.id);
+    setAssignLat(match ? String(match.lat) : "");
+    setAssignLng(match ? String(match.lng) : "");
+    setAssignModalOpen(true);
+    setAssignError(null);
+    setSuggestions([]);
+  };
+
+  const closeAssignModal = () => {
+    setAssignModalOpen(false);
+    setAssignError(null);
+    setSuggestions([]);
+  };
+
+  const doSuggest = async () => {
+    if (assignCaseId == null) {
+      setAssignError("No case selected to suggest for.");
+      return;
+    }
+    const payload: any = { strategy: assignStrategy, top_k: assignTopK, case_id: assignCaseId };
+    if (assignLat.trim() !== "" && assignLng.trim() !== "") {
+      payload.lat = Number(assignLat);
+      payload.lng = Number(assignLng);
+    }
+    try {
+      setAssignError(null);
+      setSuggestions(await suggest(payload));
+    } catch (err: any) {
+      setAssignError(err?.message || "Failed to fetch suggestions");
+    }
+  };
+
+  const doAssign = async (inspectorId: number) => {
+    if (assignCaseId == null) {
+      setAssignError("Pick a case before assigning.");
+      return;
+    }
+    if (!assignStart || !assignEnd) {
+      setAssignError("Pick start and end times.");
+      return;
+    }
+
+    setAssignError(null);
+    try {
+      const payload: any = {
+        case_id: Number(assignCaseId),
+        inspector_id: inspectorId,
+        start_time: new Date(assignStart).toISOString(),
+        end_time: new Date(assignEnd).toISOString(),
+      };
+      if (assignLat.trim() !== "" && assignLng.trim() !== "") {
+        const parsedLat = Number(assignLat);
+        const parsedLng = Number(assignLng);
+        if (!Number.isNaN(parsedLat) && !Number.isNaN(parsedLng)) {
+          payload.target_lat = parsedLat;
+          payload.target_lng = parsedLng;
+        }
+      }
+
+      await assignVisit(payload);
+      await applyCaseFilters();
+      alert("Appointment created.");
+      closeAssignModal();
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail || err?.message || "Failed to assign";
+      setAssignError(detail);
+      console.error("Assign failed", err);
+    }
+  };
+
   return (
     <div className="ms-home eco-page">
       <div className="page-shell">
@@ -193,7 +286,6 @@ const ManagerDashboard: React.FC = () => {
         <Tabs
           tabs={[
             "Overview",
-            "Suggest & Assign",
             "Scheduling",
             "Reporting",
             "Tickets",
@@ -206,7 +298,6 @@ const ManagerDashboard: React.FC = () => {
 
         {/* TAB CONTENT */}
         {tab === "Overview" && <OverviewTab />}
-        {tab === "Suggest & Assign" && <SuggestAssignTab />}
         {tab === "Scheduling" && <SchedulingTab />}
         {tab === "Reporting" && <ReportingTab />}
         {tab === "Tickets" && <TicketManagementPanel />}
@@ -280,30 +371,9 @@ const ManagerDashboard: React.FC = () => {
                     >
                       View
                     </button>
-
-                    <select
-                      className="auth-input"
-                      defaultValue=""
-                      onChange={async (e) => {
-                        const v = e.target.value;
-                        if (!v) return;
-                        await assignInspector(c.id, v);
-                        await applyCaseFilters();
-                        e.currentTarget.value = "";
-                      }}
-                    >
-                      <option value="" disabled>
-                        Assign Inspector
-                      </option>
-                      {users
-                        .filter((u) => u.role === "Inspector")
-                        .map((u) => (
-                          <option key={u.id} value={String(u.id)}>
-                            {u.full_name || u.email}
-                          </option>
-                        ))}
-                    </select>
-
+                    <button className="btn-eco sm" onClick={() => openAssignModal(c)}>
+                      Assign Inspector
+                    </button>
                   </div>
                 </div>
               ))}
@@ -332,6 +402,129 @@ const ManagerDashboard: React.FC = () => {
               showRoutes={false}
               showHomeBase={false}
             />
+          </div>
+        )}
+
+        {/* Suggest & Assign modal (from former tab) */}
+        {assignModalOpen && (
+          <div className="eco-modal">
+            <div className="eco-modal-content" style={{ maxWidth: 960 }}>
+              <button
+                className="eco-modal-close"
+                aria-label="Close suggest and assign"
+                onClick={closeAssignModal}
+              >
+                &times;
+              </button>
+              <h3 style={{ marginTop: 0 }}>
+                Suggest & Assign {assignCaseId ? `(Case #${assignCaseId})` : ""}
+              </h3>
+              <div className="eco-grid two">
+                <div className="eco-card" style={{ minHeight: "100%" }}>
+                  <div className="eco-card-head">
+                    <h3>Suggest</h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2">
+                      <p className="eco-muted" style={{ marginBottom: 4 }}>
+                        Case
+                      </p>
+                      <div className="assign-pill">
+                        {assignCaseId ? caseLabel.get(assignCaseId) || `Case #${assignCaseId}` : "--"}
+                      </div>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="eco-muted" style={{ marginBottom: 4 }}>
+                        Target coordinates
+                      </p>
+                      <div className="assign-pill">
+                        {assignLat && assignLng
+                          ? `${assignLat}, ${assignLng}`
+                          : "No coordinates available for this case"}
+                      </div>
+                    </div>
+                    <label>
+                      Strategy
+                      <select
+                        className="eco-input"
+                        value={assignStrategy}
+                        onChange={(e) => setAssignStrategy(e.target.value as any)}
+                      >
+                        <option value="proximity">Proximity</option>
+                        <option value="workload">Current load</option>
+                      </select>
+                    </label>
+                    <label>
+                      Top K
+                      <input
+                        className="eco-input"
+                        type="number"
+                        min={1}
+                        max={10}
+                        value={assignTopK}
+                        onChange={(e) => setAssignTopK(Number(e.target.value))}
+                      />
+                    </label>
+                  </div>
+                  <div className="mt-3">
+                    <button className="btn-eco" onClick={doSuggest}>
+                      Suggest
+                    </button>
+                  </div>
+                  {assignError && <p className="text-sm text-red-600 mt-2">{assignError}</p>}
+
+                  {suggestions.length > 0 && (
+                    <div className="eco-table compact mt-4">
+                      <div className="eco-thead">
+                        <span>Inspector</span>
+                        <span>Score</span>
+                        <span>Reason</span>
+                        <span>Assign</span>
+                      </div>
+                      {suggestions.map((s) => (
+                        <div className="eco-row" key={s.inspector_id}>
+                          <span>{s.inspector_name}</span>
+                          <span>{s.score}</span>
+                          <span className="text-slate-500">{s.reason}</span>
+                          <span>
+                            <button className="btn-eco sm" onClick={() => doAssign(s.inspector_id)}>
+                              Assign
+                            </button>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="eco-card">
+                  <div className="eco-card-head">
+                    <h3>New Appointment Window</h3>
+                  </div>
+                  <label>
+                    Start
+                    <input
+                      type="datetime-local"
+                      className="eco-input"
+                      value={assignStart}
+                      onChange={(e) => setAssignStart(e.target.value)}
+                    />
+                  </label>
+                  <label className="mt-2 block">
+                    End
+                    <input
+                      type="datetime-local"
+                      className="eco-input"
+                      value={assignEnd}
+                      onChange={(e) => setAssignEnd(e.target.value)}
+                    />
+                  </label>
+                  <p className="text-sm text-slate-500 mt-2">
+                    Pick times, then click <em>Assign</em> on a suggestion.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
