@@ -179,6 +179,9 @@ def assign_visit(req: AssignRequest, db: Session = Depends(get_db)):
     # Also reflect the assignment on the case itself so the manager UI shows the inspector.
     if ins.user_id:
         c.assigned_inspector_id = ins.user_id
+    # Mark case as pending once assigned.
+    if (c.status or "").lower() != "pending":
+        c.status = "pending"
     
 
     if req.target_lat is not None and req.target_lng is not None:

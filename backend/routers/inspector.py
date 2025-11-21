@@ -106,10 +106,12 @@ def haversine(lat1, lng1, lat2, lng2):
     return 2 * R * atan2(sqrt(a), sqrt(1 - a))
 
 
-def _get_linked_inspector(db: Session, user: User) -> Inspector:
+def _get_linked_inspector(db: Session, user: User, require_home: bool = False) -> Inspector:
     inspector = db.query(Inspector).filter(Inspector.user_id == user.id).first()
     if not inspector:
         raise HTTPException(status_code=404, detail="Inspector profile not linked")
+    if require_home and (inspector.home_lat is None or inspector.home_lng is None):
+        raise HTTPException(status_code=400, detail="Home Base required before performing this action.")
     return inspector
 
 
@@ -120,13 +122,13 @@ def _resolve_inspector_id(
 ) -> int:
     if inspector_id is not None:
         if user.role == "Inspector":
-            linked = _get_linked_inspector(db, user)
+            linked = _get_linked_inspector(db, user, require_home=True)
             if linked.id != inspector_id:
                 raise HTTPException(status_code=403, detail="Cannot access other inspectors")
         return inspector_id
     if user.role != "Inspector":
         raise HTTPException(status_code=400, detail="inspector_id is required")
-    return _get_linked_inspector(db, user).id
+    return _get_linked_inspector(db, user, require_home=True).id
 
 
 @router.get("/me", response_model=InspectorSelfOut, tags=["Inspector"])
@@ -175,11 +177,20 @@ def my_schedule(
     ),
     current_user: User = Depends(get_current_user),
 ):
+    if current_user.role == "Inspector":
+        _get_linked_inspector(db, current_user, require_home=True)
     target_id = _resolve_inspector_id(db, current_user, inspector_id)
+    allowed_appt_statuses = ("pending", "accepted", "scheduled", "rescheduled")
+    allowed_case_statuses = ("new", "pending", "accepted", "scheduled", "rescheduled")
     q = (
         db.query(Appointment)
         .options(joinedload(Appointment.case).joinedload(Case.building))
-        .filter(Appointment.inspector_id == target_id)
+        .filter(
+            Appointment.inspector_id == target_id,
+            func.lower(Appointment.status).in_(allowed_appt_statuses),
+            func.lower(Case.status).in_(allowed_case_statuses),
+        )
+        .join(Case, Appointment.case)
     )
 
     if day:
@@ -238,11 +249,18 @@ def respond_appointment(
 
     # if inspector role, ensure they are linked to this appointment
     if current_user.role == "Inspector":
-        linked = _get_linked_inspector(db, current_user)
+        linked = _get_linked_inspector(db, current_user, require_home=True)
         if appt.inspector_id != linked.id:
             raise HTTPException(status_code=403, detail="Cannot update another inspector's appointment")
 
-    appt.status = "accepted" if payload.action == "accept" else "rejected"
+    if payload.action == "accept":
+        appt.status = "scheduled"
+        if appt.case:
+            appt.case.status = "scheduled"
+    else:
+        appt.status = "rejected"
+        if appt.case:
+            appt.case.status = "rejected"
     db.commit()
     db.refresh(appt)
 
@@ -279,7 +297,7 @@ def confirm_visit(
     if not appt:
         raise HTTPException(404, "Appointment not found")
     if current_user.role == "Inspector":
-        linked = _get_linked_inspector(db, current_user)
+        linked = _get_linked_inspector(db, current_user, require_home=True)
         if appt.inspector_id != linked.id:
             raise HTTPException(status_code=403, detail="Cannot modify another inspector's visit")
 
@@ -290,7 +308,11 @@ def confirm_visit(
         appt.end_time = payload.end_time
         appt.status = "pending"
     elif payload.action == "confirm":
-        appt.status = "accepted"
+        # Move to scheduled when inspector confirms so manager sees the update.
+        appt.status = "scheduled"
+        # Also move the linked case into Scheduled if present.
+        if appt.case:
+            appt.case.status = "scheduled"
     elif payload.action == "visited":
         appt.status = "closed"
     else:
@@ -321,6 +343,8 @@ def routes(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if current_user.role == "Inspector":
+        _get_linked_inspector(db, current_user, require_home=True)
     target_id = _resolve_inspector_id(db, current_user, inspector_id)
     start_dt = datetime.combine(day, datetime.min.time())
     end_dt = datetime.combine(day, datetime.max.time())
@@ -380,7 +404,13 @@ def routes(
 
 
 @router.get("/reports/case/{case_id}.pdf", tags=["Inspector"])
-def case_report_pdf(case_id: int, db: Session = Depends(get_db)):
+def case_report_pdf(
+    case_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role == "Inspector":
+        _get_linked_inspector(db, current_user, require_home=True)
     appts = (
         db.query(Appointment)
         .filter(Appointment.case_id == case_id)
@@ -432,8 +462,12 @@ def case_report_pdf(case_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/cases/{case_id}/report", tags=["Inspector"])
-def case_report_alias(case_id: int, db: Session = Depends(get_db)):
-    return case_report_pdf(case_id, db)
+def case_report_alias(
+    case_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return case_report_pdf(case_id, db, current_user)
 
 
 @router.get("/reports/inspector", response_model=InspectorSummary, tags=["Inspector"])
@@ -442,6 +476,8 @@ def inspector_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if current_user.role == "Inspector":
+        _get_linked_inspector(db, current_user, require_home=True)
     target_id = _resolve_inspector_id(db, current_user, None)
     day_val = day or datetime.utcnow().date()
     start_dt = datetime.combine(day_val, datetime.min.time())
@@ -509,6 +545,8 @@ def fraud_map(
     """
     # If logged in as Inspector with no inspector_id param,
     # this resolves to the linked inspector's id
+    if current_user.role == "Inspector":
+        _get_linked_inspector(db, current_user, require_home=True)
     target_id = _resolve_inspector_id(db, current_user, inspector_id)
 
     rows = (
@@ -561,7 +599,7 @@ def fraud_map_me(
     Fraud info is only for styling on the map.
     """
     # Find which inspector is linked to this user
-    inspector = _get_linked_inspector(db, current_user)
+    inspector = _get_linked_inspector(db, current_user, require_home=True)
     if not inspector.user_id:
         raise HTTPException(status_code=400, detail="Inspector is not linked to a user account")
 
@@ -611,6 +649,8 @@ def weekly_export(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if current_user.role == "Inspector":
+        _get_linked_inspector(db, current_user, require_home=True)
     target_id = _resolve_inspector_id(db, current_user, inspector_id)
     start = datetime.combine(week_start, datetime.min.time())
     end = start + timedelta(days=7)

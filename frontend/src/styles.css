@@ -1341,6 +1341,35 @@ body > header:first-of-type {
   justify-content: center; /* center the button */
 }
 
+.blocked-ui {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.55;
+}
+
+.home-block-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #1b5e20;
+  background: rgba(255, 255, 255, 0.7);
+  pointer-events: auto;
+}
+
+.disabled-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px dashed #9ca3af;
+  background: #f5f5f5;
+  color: #6b7280;
+  font-weight: 600;
+  cursor: not-allowed;
+}
+
 .assign-pill {
   display: inline-flex;
   align-items: center;

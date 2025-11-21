@@ -137,3 +137,13 @@ export async function submitInspectionReport(caseId: number, payload: Inspection
   const { data } = await api.post(`/inspections/${caseId}/report`, form)
   return data as { message: string; report_id: number }
 }
+
+export async function confirmCase(caseId: number) {
+  const { data } = await api.post(`/cases/${caseId}/confirm`)
+  return data as { id: number; status: string }
+}
+
+export async function rejectCase(caseId: number) {
+  const { data } = await api.post(`/cases/${caseId}/reject`)
+  return data as { id: number; status: string }
+}
