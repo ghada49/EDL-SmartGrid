@@ -6,7 +6,6 @@ import TicketManagementPanel from "./TicketManagementPanel";
 import { Tabs } from "../components/Tabs";
 import OverviewTab from "./manager/OverviewTab";
 import SchedulingTab from "./manager/SchedulingTab";
-import ReportingTab from "./manager/ReportingTab";
 import FeedbackPanel from "../components/FeedbackPanel";
 
 import { uploadDataset, getDatasetHistory, DQ } from "../api/ops";
@@ -22,7 +21,7 @@ import {
 import FraudMap, { FraudPoint } from "../components/FraudMap";
 import { assignVisit, suggest, Suggestion } from "../api/scheduling";
 
-const CASE_STATUSES = ["New", "Scheduled", "Reported", "Closed"] as const;
+const CASE_STATUSES = ["New", "Pending", "Scheduled", "Reported", "Closed"] as const;
 
 const ManagerDashboard: React.FC = () => {
   const { role: myRole } = useAuth();
@@ -287,10 +286,9 @@ const ManagerDashboard: React.FC = () => {
           tabs={[
             "Overview",
             "Scheduling",
-            "Reporting",
-            "Tickets",
             "Case Management",
             "Map",
+            "Tickets",
           ]}
           active={tab}
           onChange={(t) => setTab(t as any)}
@@ -299,7 +297,6 @@ const ManagerDashboard: React.FC = () => {
         {/* TAB CONTENT */}
         {tab === "Overview" && <OverviewTab />}
         {tab === "Scheduling" && <SchedulingTab />}
-        {tab === "Reporting" && <ReportingTab />}
         {tab === "Tickets" && <TicketManagementPanel />}
 
         {/* ================= CASE MANAGEMENT TAB ================= */}

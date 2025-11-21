@@ -817,6 +817,11 @@ textarea.auth-input {
   color: #1b5e20;
 }
 
+.eco-card--tight {
+  min-height: auto;
+  padding: 14px 16px;
+}
+
 .eco-card h3,
 .eco-card-head h3 {
   font-size: 1.1rem;
@@ -854,9 +859,11 @@ textarea.auth-input {
 /* KPI strip */
 .eco-kpi-strip {
   display: flex;
-  gap: 1rem;
+  gap: 1.2rem;
   flex-wrap: wrap;
-  margin: 0.5rem 0 1.5rem;
+  margin: 1.6rem auto;
+  justify-content: center;
+  width: 100%;
 }
 
 .eco-kpi {

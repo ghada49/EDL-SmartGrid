@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   listTickets,
   getTicket,
@@ -6,6 +6,7 @@ import {
   addTicketFollowup,
   TicketRow as Ticket,
 } from "../api/tickets";
+import { API_BASE_URL } from "../api/client";
 
 const TicketManagementPanel: React.FC = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -34,6 +35,13 @@ const TicketManagementPanel: React.FC = () => {
   const displayTickets = statusFilter
     ? tickets.filter((ticket) => ticket.status === statusFilter)
     : tickets;
+
+  const evidenceUrl = useMemo(() => {
+    if (!detail?.photo_path) return null;
+    const clean = detail.photo_path.replace(/^\/+/, "").replace(/\\/g, "/");
+    // Use the same API base URL as other authenticated calls to fetch the static file.
+    return `${API_BASE_URL}/${clean}`;
+  }, [detail]);
 
   return (
     <div className="eco-card">
@@ -132,9 +140,9 @@ const TicketManagementPanel: React.FC = () => {
             <p>Description:</p>
             <pre className="eco-pre">{detail.description}</pre>
 
-            {detail.photo_path && (
+            {evidenceUrl && (
               <img
-                src={`/${detail.photo_path}`}
+                src={evidenceUrl}
                 alt="ticket evidence"
                 style={{ width: "100%", marginTop: 8 }}
               />
