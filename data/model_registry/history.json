@@ -295,7 +295,116 @@
         "resid_per_m2"
       ]
     },
-    "is_active": true,
+    "is_active": false,
     "activated_at": "2025-11-22T09:26:15.412905+00:00"
+  },
+  {
+    "model_id": "fused_if_lof_ae_ocsvm_copula",
+    "version": 7,
+    "trained_at": "2025-11-22T21:38:01.017453+00:00",
+    "mode": "fast",
+    "duration_sec": 292.24540758132935,
+    "data": {
+      "n_samples": 1761,
+      "n_features": 13,
+      "source": "data/latest_ingested.csv"
+    },
+    "metrics": {
+      "silhouette": 0.6534956291684151,
+      "dunn": 0.04570186121645613,
+      "dbi": 0.9151834249662261
+    },
+    "stability": {
+      "bootstrap_spearman_rho": 0.9735315486994595,
+      "bootstrap_jaccard_at_k": 0.8945989370905946,
+      "bootstrap_ari": 0.939932143595569,
+      "noise_rho": 0.9823548873096146,
+      "seed_rho": 0.9938428044270569
+    },
+    "hyperparams": {
+      "contamination": 0.02,
+      "use_pca": true,
+      "use_fa": false,
+      "pca_components": 7
+    },
+    "files": {
+      "scores_csv": "data\\processed\\anomaly_scores.csv",
+      "meta_json": "data\\processed\\anomaly_scores_meta.json",
+      "stability_json": "data\\processed\\anomaly_scores_stability.json",
+      "scaler": "data\\processed\\anomaly_scores_scaler.joblib",
+      "pca": "data\\processed\\anomaly_scores_pca.joblib",
+      "residual_model": "data\\processed\\anomaly_scores_resid.joblib"
+    },
+    "meta": {
+      "contamination": 0.02,
+      "methods": [
+        "IF",
+        "LOF",
+        "PPCA_MAH",
+        "HDBSCAN",
+        "COPULA"
+      ],
+      "thresholds": {
+        "IF": 0.5812336035516854,
+        "LOF": 1.403691506511547,
+        "PPCA_MAH": 325.5846299329635,
+        "HDBSCAN": 0.647174356476649,
+        "COPULA": 10.958565118247407
+      },
+      "fused_threshold": 0.9669318181818181,
+      "evals": {
+        "IF": {
+          "silhouette": 0.6551397937097228,
+          "dunn": 0.04555190576231637,
+          "dbi": 0.8795978012447971
+        },
+        "LOF": {
+          "silhouette": 0.4877766817884394,
+          "dunn": 0.028409790408254195,
+          "dbi": 2.4782386797864935
+        },
+        "PPCA_MAH": {
+          "silhouette": 0.6636136007182007,
+          "dunn": 0.07188837152455642,
+          "dbi": 0.7121804291740846
+        },
+        "HDBSCAN": {
+          "silhouette": 0.6610322804128682,
+          "dunn": 0.02574018588795617,
+          "dbi": 0.8642528508340106
+        },
+        "COPULA": {
+          "silhouette": 0.6513424763144811,
+          "dunn": 0.02565572803084202,
+          "dbi": 0.9221364653791663
+        },
+        "FUSED": {
+          "silhouette": 0.6534956291684151,
+          "dunn": 0.04570186121645613,
+          "dbi": 0.9151834249662261
+        }
+      },
+      "weights": {},
+      "use_pca": true,
+      "use_fa": false,
+      "pca_components": 7,
+      "feature_columns": [
+        "nb_floor",
+        "nb_appart",
+        "Total Electricity Consumption (kwH)",
+        "lat",
+        "long",
+        "Area in m^2",
+        "year_norm_z",
+        "kwh_residual",
+        "kwh_resid_abs",
+        "kwh_per_m2",
+        "kwh_per_appt",
+        "kwh_per_floor",
+        "resid_per_m2"
+      ]
+    },
+    "is_active": true,
+    "activated_at": "2025-11-22T21:38:01.018167+00:00"
   }
 ]
