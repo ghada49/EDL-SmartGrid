@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel
 
 from ..db import get_db
-from ..deps import require_roles
+from ..deps import require_roles, get_current_user
 from ..models import ops as models, Inspector, Appointment, FeedbackLabel
 from ..models.user import User
 
@@ -48,7 +48,7 @@ def create_case(
         anomaly_id=anomaly_id,
         notes=notes,
         created_by=created_by,
-        status="New",
+        status="new",
     )
     db.add(case)
     db.add(
@@ -181,7 +181,7 @@ def cases_map(db: Session = Depends(get_db)):
             building_id=r.building_id,
             lat=float(r.lat),
             lng=float(r.lng),
-            status=r.status or "New",
+            status=(r.status or "new"),
             outcome=r.outcome,
             feedback_label=r.feedback_label,
             assigned_inspector_id=r.assigned_inspector_id,
@@ -207,12 +207,12 @@ def assign_case(
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    previous_status = case.status
+    previous_status = case.status or ""
     case.assigned_inspector_id = inspector_id
 
     status_changed = False
-    if previous_status == "New":
-        case.status = "Scheduled"
+    if (previous_status or "").lower() != "pending":
+        case.status = "pending"
         status_changed = True
     db.add(case)
 
@@ -253,7 +253,7 @@ def update_case_status(
     actor: Optional[str] = Form(None),
     db: Session = Depends(get_db),
 ):
-    if status not in ["New", "Scheduled", "Reported", "Closed"]:
+    if status not in ["new", "pending", "scheduled", "reported", "rejected", "closed"]:
         raise HTTPException(status_code=400, detail="Invalid status")
 
     case = db.query(models.Case).get(case_id)
@@ -511,3 +511,48 @@ def review_inspection_report(
         "report_id": report.id,
         "report_status": report.status,
     }
+
+
+@router.post("/{case_id}/confirm", dependencies=[Depends(require_roles("Inspector"))])
+def confirm_case(case_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    case = db.query(models.Case).get(case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    # inspector can only confirm own assignment
+    if case.assigned_inspector_id and str(case.assigned_inspector_id) != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Not your case")
+    case.status = "scheduled"
+    db.add(case)
+    db.add(
+        models.CaseActivity(
+            case_id=case.id,
+            actor=current_user.full_name or current_user.email or "inspector",
+            action="CONFIRM",
+            note="Inspector confirmed case",
+        )
+    )
+    db.commit()
+    db.refresh(case)
+    return {"id": case.id, "status": case.status}
+
+
+@router.post("/{case_id}/reject", dependencies=[Depends(require_roles("Inspector"))])
+def reject_case(case_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    case = db.query(models.Case).get(case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    if case.assigned_inspector_id and str(case.assigned_inspector_id) != str(current_user.id):
+        raise HTTPException(status_code=403, detail="Not your case")
+    case.status = "rejected"
+    db.add(case)
+    db.add(
+        models.CaseActivity(
+            case_id=case.id,
+            actor=current_user.full_name or current_user.email or "inspector",
+            action="REJECT",
+            note="Inspector rejected case",
+        )
+    )
+    db.commit()
+    db.refresh(case)
+    return {"id": case.id, "status": case.status}

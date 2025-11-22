@@ -51,8 +51,8 @@ export default function OverviewTab() {
   };
 
   const totalCases = cases.length;
-  const openCases = cases.filter((c) => c.status !== "Closed").length;
-  const closedCases = cases.filter((c) => c.status === "Closed").length;
+  const openCases = cases.filter((c) => (c.status || "").toLowerCase() !== "closed").length;
+  const closedCases = cases.filter((c) => (c.status || "").toLowerCase() === "closed").length;
   const totalTickets = tickets.length;
   const openTickets = tickets.filter((t) => t.status !== "Closed").length;
   const closedTickets = tickets.filter((t) => t.status === "Closed").length;

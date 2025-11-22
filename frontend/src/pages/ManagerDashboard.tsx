@@ -23,7 +23,7 @@ import {
 import FraudMap, { FraudPoint } from "../components/FraudMap";
 import { assignVisit, suggest, Suggestion } from "../api/scheduling";
 
-const CASE_STATUSES = ["New", "Pending", "Scheduled", "Reported", "Closed"] as const;
+const CASE_STATUSES = ["new", "pending", "scheduled", "reported", "rejected", "closed"] as const;
 
 const ManagerDashboard: React.FC = () => {
   const { role: myRole } = useAuth();
@@ -372,9 +372,15 @@ const [tab, setTab] = useState<
                     >
                       View
                     </button>
-                    <button className="btn-eco sm" onClick={() => openAssignModal(c)}>
-                      Assign Inspector
-                    </button>
+                    {["new", "pending", "rejected"].includes((c.status || "").toLowerCase()) ? (
+                      <button className="btn-eco sm" onClick={() => openAssignModal(c)}>
+                        Assign Inspector
+                      </button>
+                    ) : (
+                      <button disabled className="disabled-btn">
+                        Assign Inspector
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

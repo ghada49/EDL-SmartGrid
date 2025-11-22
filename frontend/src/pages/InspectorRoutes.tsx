@@ -23,6 +23,8 @@ import {
   addMeterReading,
   getCaseDetail,
   submitInspectionReport,
+  confirmCase,
+  rejectCase,
 } from "../api/cases";
 
 // ---- local helper for inspector-specific endpoints ----
@@ -114,7 +116,7 @@ type InspectorProfile = {
 
 type InspectorTab = "calendar" | "map" | "cases";
 
-const INSPECTOR_CASE_STATUSES = ["Scheduled", "Reported"] as const;
+const INSPECTOR_CASE_STATUSES = ["pending", "scheduled", "reported", "rejected", "closed"] as const;
 
 // ---- date / formatting helpers ----
 
@@ -351,7 +353,7 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({ inspector }) => {
               <span>#{a.case_id}</span>
               <span>{a.status}</span>
               <span className="eco-actions" style={{ flexWrap: "wrap", gap: 6 }}>
-                {a.status !== "closed" && (
+                {a.status === "pending" && (
                   <>
                     <button
                       className="btn-eco sm"
@@ -363,31 +365,12 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({ inspector }) => {
                     <button
                       className="btn-outline sm"
                       disabled={busy}
-                      onClick={() => rescheduleVisit(a)}
+                      onClick={() => respond(a.id, "reject")}
                     >
-                      Reschedule
-                    </button>
-                    <button
-                      className="btn-outline sm"
-                      disabled={busy}
-                      onClick={() => markVisited(a.id)}
-                    >
-                      Mark Visited
+                      Reject
                     </button>
                   </>
                 )}
-                {a.status === "pending" && (
-                  <button
-                    className="btn-outline sm"
-                    disabled={busy}
-                    onClick={() => respond(a.id, "reject")}
-                  >
-                    Reject
-                  </button>
-                )}
-                <button className="btn-outline sm" onClick={() => downloadCasePdf(a.case_id)}>
-                  <FaFilePdf />
-                </button>
               </span>
             </div>
           ))}
@@ -419,6 +402,12 @@ const InspectorRoutes: React.FC = () => {
   const [homeStatus, setHomeStatus] = useState<string | null>(null);
   const [homeError, setHomeError] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const homeMissing =
+    !!profile &&
+    (profile.home_lat === null ||
+      profile.home_lat === undefined ||
+      profile.home_lng === null ||
+      profile.home_lng === undefined);
 
   // fraud map state (for THIS inspector's cases only)
   const [fraudPoints, setFraudPoints] = useState<FraudPoint[]>([]);
@@ -449,6 +438,7 @@ const InspectorRoutes: React.FC = () => {
   const [caseStatusFilter, setCaseStatusFilter] = useState<
     (typeof INSPECTOR_CASE_STATUSES)[number] | null
   >(null);
+  const uiBlocked = homeMissing;
 
   const flashMessage = (caseId: number, message: string) => {
     setFlashByCase((prev) => ({ ...prev, [caseId]: message }));
@@ -548,6 +538,12 @@ const InspectorRoutes: React.FC = () => {
     };
   }, [role]);
 
+  useEffect(() => {
+    if (homeMissing) {
+      setSettingsOpen(true);
+    }
+  }, [homeMissing]);
+
   // sync home base inputs
   useEffect(() => {
     if (profile) {
@@ -624,14 +620,19 @@ const InspectorRoutes: React.FC = () => {
     setHomeError(null);
     setHomeStatus(null);
 
-    const latVal = homeLatInput.trim() === "" ? null : Number(homeLatInput.trim());
-    const lngVal = homeLngInput.trim() === "" ? null : Number(homeLngInput.trim());
+    if (homeLatInput.trim() === "" || homeLngInput.trim() === "") {
+      setHomeError("Home Base required before continuing.");
+      return;
+    }
 
-    if (latVal !== null && Number.isNaN(latVal)) {
+    const latVal = Number(homeLatInput.trim());
+    const lngVal = Number(homeLngInput.trim());
+
+    if (Number.isNaN(latVal)) {
       setHomeError("Latitude must be a valid number.");
       return;
     }
-    if (lngVal !== null && Number.isNaN(lngVal)) {
+    if (Number.isNaN(lngVal)) {
       setHomeError("Longitude must be a valid number.");
       return;
     }
@@ -644,6 +645,7 @@ const InspectorRoutes: React.FC = () => {
       });
       setProfile(updated);
       setHomeStatus("Home location saved.");
+      setSettingsOpen(false);
       setTimeout(() => setHomeStatus(null), 3000);
     } catch (e: any) {
       setHomeError(e.message || "Failed to save home location.");
@@ -676,7 +678,11 @@ const InspectorRoutes: React.FC = () => {
         <h3>
           <FaMapMarkedAlt className="eco-icon-sm" /> Home Base
         </h3>
-
+        {homeMissing && (
+          <span className="eco-alert warn" style={{ margin: 0, fontSize: "0.85rem" }}>
+            Home Base required before continuing.
+          </span>
+        )}
         {profile && (
           <div className="inspector-chip">
             <span className="inspector-dot" />
@@ -747,7 +753,9 @@ const InspectorRoutes: React.FC = () => {
   );
 
   const filteredCases =
-    caseStatusFilter == null ? myCases : myCases.filter((c) => c.status === caseStatusFilter);
+    caseStatusFilter == null
+      ? myCases
+      : myCases.filter((c) => (c.status || "").toLowerCase() === caseStatusFilter);
 
   const casesCard = (
     <div className="eco-card inspector-cases">
@@ -765,7 +773,7 @@ const InspectorRoutes: React.FC = () => {
         <>
           <div className="eco-kpi-strip">
             {INSPECTOR_CASE_STATUSES.map((st) => {
-              const count = myCases.filter((c) => c.status === st).length;
+              const count = myCases.filter((c) => (c.status || "").toLowerCase() === st).length;
               const isActive = caseStatusFilter === st;
               return (
                 <button
@@ -775,7 +783,7 @@ const InspectorRoutes: React.FC = () => {
                   onClick={() => setCaseStatusFilter(isActive ? null : st)}
                 >
                   <div className="eco-kpi-num">{count}</div>
-                  <div className="eco-kpi-label">{st}</div>
+                  <div className="eco-kpi-label">{st.charAt(0).toUpperCase() + st.slice(1)}</div>
                 </button>
               );
             })}
@@ -792,24 +800,48 @@ const InspectorRoutes: React.FC = () => {
                 <React.Fragment key={c.id}>
                   <div className="eco-row">
                     <span>#{c.id}</span>
-                    <span>{c.status}</span>
-                    <span className="eco-actions" style={{ gap: 6 }}>
-                      <button
-                        className="btn-outline sm"
-                        onClick={async () => {
-                          setOpenDetailId(c.id === openDetailId ? null : c.id);
-                          if (c.id !== openDetailId) {
-                            try {
-                              setDetail(await getCaseDetail(c.id));
-                            } catch (err) {
-                              console.error(err);
-                            }
+                  <span>{c.status}</span>
+                  <span className="eco-actions" style={{ gap: 6 }}>
+                    {c.status?.toLowerCase() === "pending" ? (
+                      <>
+                        <button
+                          className="btn-eco sm"
+                          onClick={async () => {
+                            await confirmCase(c.id);
+                            const rows = await listCases({ inspector_id: user_id });
+                            setMyCases(rows);
+                          }}
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          className="btn-outline sm"
+                          onClick={async () => {
+                            await rejectCase(c.id);
+                            const rows = await listCases({ inspector_id: user_id });
+                            setMyCases(rows);
+                          }}
+                        >
+                          Reject
+                        </button>
+                      </>
+                    ) : null}
+                    <button
+                      className="btn-outline sm"
+                      onClick={async () => {
+                        setOpenDetailId(c.id === openDetailId ? null : c.id);
+                        if (c.id !== openDetailId) {
+                          try {
+                            setDetail(await getCaseDetail(c.id));
+                          } catch (err) {
+                            console.error(err);
                           }
-                        }}
-                      >
-                        {openDetailId === c.id ? "Hide Log" : "View Log"}
-                      </button>
-                    </span>
+                        }
+                      }}
+                    >
+                      {openDetailId === c.id ? "Hide Log" : "View Log"}
+                    </button>
+                  </span>
                   </div>
                   {c.status === "Reported" ? (
                     <div className="eco-row" style={{ background: "#f8faf8" }}>
@@ -841,7 +873,7 @@ const InspectorRoutes: React.FC = () => {
                         )}
                       </span>
                     </div>
-                  ) : (
+                  ) : c.status === "Closed" ? null : (
                     <>
                       <div className="eco-row" style={{ background: "#f8faf8" }}>
                         <span>Photo</span>
@@ -1079,7 +1111,7 @@ const InspectorRoutes: React.FC = () => {
       <header className="eco-hero">
         <h1 className="eco-title">Inspector Console</h1>
         <p className="eco-sub">
-          Prioritize visits, view flagged buildings, and manage your cases.
+          Manage inspections, review flagged buildings, and oversee active cases.
         </p>
       </header>
 
@@ -1096,14 +1128,15 @@ const InspectorRoutes: React.FC = () => {
 
       {/* Main tools */}
       <div className="inspector-layout single">
-        <div className="inspector-main">
+        <div className={`inspector-main ${uiBlocked ? "blocked-ui" : ""}`}>
           <div className="eco-tabs" role="tablist" aria-label="Inspector tools">
             {tabItems.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 className={`eco-tab ${activeTab === tab.id ? "eco-tab--active" : ""}`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => !uiBlocked && setActiveTab(tab.id)}
+                disabled={uiBlocked}
                 role="tab"
                 aria-selected={activeTab === tab.id}
               >
@@ -1126,6 +1159,11 @@ const InspectorRoutes: React.FC = () => {
               </div>
             ))}
           </div>
+          {uiBlocked && (
+            <div className="home-block-overlay">
+              Home Base required before continuing.
+            </div>
+          )}
         </div>
       </div>
       {settingsDrawer}
