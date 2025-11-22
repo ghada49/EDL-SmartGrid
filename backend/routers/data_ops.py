@@ -9,7 +9,10 @@ from ..utils.drift import simple_drift_report
 import os, shutil, time
 from ..models.dataset_version import DatasetVersion
 from ..deps import require_roles
+from typing import Optional, List
+from ..ml.inference import score_new_dataset, NoActiveModelError
 import re
+import pandas as pd
 
 router = APIRouter(prefix="/ops", tags=["Data & Reporting"])
 
@@ -213,6 +216,116 @@ async def analyze_dataset(
         columns = simple_drift_report(candidate_csv=candidate_csv, reference_csv=ref_path)["columns"]
 
     return {"dq": dq, "columns": columns}
+@router.post("/infer-and-create-cases")
+async def infer_and_create_cases(
+    file: UploadFile = File(...),
+    top_percent: float = Form(5.0),
+    db: Session = Depends(get_db),
+    current_user = Depends(require_roles("Manager", "Admin")),
+):
+    """
+    1) Take a CSV/Excel file with *the same schema as the ingested dataset*.
+    2) Run the exact same preprocessing pipeline as training.
+    3) Load the active fused model's scaler/PCA; compute anomaly scores.
+    4) Pick the top X% anomalies.
+    5) For each anomaly row:
+         - Try to map its FID to an existing Building.
+         - Create a new Case with status 'New' (unassigned).
+         - Log a CaseActivity 'CREATE'.
+    6) Return a compact list of anomalies + created case IDs.
+    """
+    # Basic sanity check for the manager input
+    if top_percent <= 0 or top_percent > 50:
+        raise HTTPException(
+            status_code=400,
+            detail="top_percent must be in (0, 50]. Example: 5 for top 5%.",
+        )
+
+    # Save uploaded file temporarily
+    os.makedirs("data/tmp", exist_ok=True)
+    safe_name = file.filename or "inference_upload"
+    tmp_path = f"data/tmp/_infer_{int(time.time())}_{safe_name}"
+
+    content = await file.read()
+    with open(tmp_path, "wb") as f:
+        f.write(content)
+
+    # Validate / normalize the CSV (same as upload_dataset)
+    try:
+        df = validate_csv(tmp_path)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Validation failed: {e}")
+
+    # Run scoring with the active model
+    try:
+        df_scored, df_top = score_new_dataset(df, top_percent=top_percent)
+    except NoActiveModelError as e:
+        # No trained/active model in the registry
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        # Bubble up preprocessing / scaler shape errors etc.
+        raise HTTPException(status_code=400, detail=f"Inference failed: {e}")
+
+    anomalies: List[dict] = []
+
+    creator = getattr(current_user, "email", None) or getattr(current_user, "id", None)
+
+    # Helper: resolve building by FID if possible
+    def _find_building_id(row) -> Optional[int]:
+        fid_val = None
+        if "FID" in row and not pd.isna(row["FID"]):
+            fid_val = int(row["FID"])
+        elif "fid" in row and not pd.isna(row["fid"]):
+            fid_val = int(row["fid"])
+
+        if fid_val is None:
+            return None
+
+        # Check if a Building with this id exists
+        b = db.query(dbmodels.Building).filter(dbmodels.Building.id == fid_val).first()
+        return b.id if b else None
+
+    # Create Cases for each anomaly row
+    for _, r in df_top.iterrows():
+        building_id = _find_building_id(r)
+
+        case = dbmodels.Case(
+            building_id=building_id,
+            anomaly_id=None,  # optional – depends on your schema
+            notes="Case created from anomaly scoring",
+            created_by=creator,
+            status="New",  # unassigned, will appear in Case Management
+        )
+        db.add(case)
+        db.flush()  # get case.id without committing yet
+
+        activity = dbmodels.CaseActivity(
+            case_id=case.id,
+            actor=creator or "system",
+            action="CREATE",
+            note=f"Case created from anomaly scoring (fused_score={float(r['fused_score']):.3f})",
+        )
+        db.add(activity)
+
+        anomalies.append(
+            {
+                "rank": int(r.get("rank", 0)),
+                "FID": r.get("FID") if "FID" in r else r.get("fid"),
+                "building_id": building_id,
+                "fused_score": float(r["fused_score"]),
+                "case_id": case.id,
+            }
+        )
+
+    db.commit()
+
+    return {
+        "status": "ok",
+        "top_percent": top_percent,
+        "n_total_rows": int(len(df_scored)),
+        "n_anomalies": len(anomalies),
+        "anomalies": anomalies,
+    }
 
 
 @router.get("/report/pdf/{building_id}")

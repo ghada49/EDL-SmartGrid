@@ -1,4 +1,4 @@
-# scripts/run_anomaly_pipeline.py
+# scripts/train_models.py
 # End-to-end anomaly pipeline with residuals, winsorization, ratios, PCA, IF/LOF,
 # optional AE/VAE, OCSVM, HDBSCAN, PPCA-Mahalanobis, Gaussian Copula, and GMM NLL.
 # Evaluates with Silhouette, Dunn, Davies–Bouldin; adds Stability/Overfitting Audit.
@@ -268,20 +268,27 @@ def try_fit_vae(X, latent_dim=8, epochs=60, batch_size=64, seed=42, verbose=0):
 
 
 # ---------------- Core pipeline helpers ----------------
-def build_residual(df, x_cols, y_col, folds=5, seed=42):
-    """K-fold CV HuberRegressor residuals (actual - predicted)."""
+def build_residual(df, x_cols, y_col, seed=42):
+    """
+    Fit ONE global HuberRegressor + StandardScaler on the training set,
+    use it to compute residuals, and RETURN the fitted artifacts.
+    This lets us reuse the same residual model at inference time.
+    """
     X = df[x_cols].copy()
     y = df[y_col].copy()
+
     scaler = StandardScaler()
     Xs = scaler.fit_transform(X)
-    kf = KFold(n_splits=folds, shuffle=True, random_state=seed)
-    y_pred = np.zeros_like(y, dtype=float)
-    for tr, te in kf.split(Xs):
-        model = HuberRegressor().fit(Xs[tr], y.iloc[tr])
-        y_pred[te] = model.predict(Xs[te])
+
+    model = HuberRegressor()
+    model.fit(Xs, y)
+
+    y_pred = model.predict(Xs)
     df["kwh_residual"] = y - y_pred
     df["kwh_resid_abs"] = np.abs(df["kwh_residual"])
-    return df
+
+    # return df + artifacts so training can persist them
+    return df, scaler, model
 
 
 def winsorize_and_ratios(df):
@@ -330,12 +337,17 @@ def run_pipeline(args):
         print(f"Loaded: {df.shape} from {args.input}")
 
     # ---------- Residuals ----------
+    # ---------- Residuals ----------
     y_col = "Total Electricity Consumption (kwH)"
     x_cols = ["Area in m^2", "nb_appart", "nb_floor", "year_norm_z"]
     missing = [c for c in x_cols + [y_col] if c not in df.columns]
     if missing:
         raise ValueError(f"Missing required columns for residuals: {missing}")
-    df = build_residual(df, x_cols=x_cols, y_col=y_col, folds=args.cv_folds, seed=args.seed)
+
+    df, resid_scaler, resid_model = build_residual(
+        df, x_cols=x_cols, y_col=y_col, seed=args.seed
+    )
+
 
     # ---------- Winsorization + ratios ----------
     df = winsorize_and_ratios(df)
@@ -661,6 +673,7 @@ def run_pipeline(args):
             "use_pca": bool(args.use_pca),
             "use_fa": bool(args.use_fa),
             "pca_components": int(X_model.shape[1]) if (args.use_pca or args.use_fa) else None,
+            "feature_columns": num_cols,
         }
         with open(args.output.replace(".csv", "_meta.json"), "w") as f:
             json.dump(meta, f, indent=2)
@@ -671,6 +684,15 @@ def run_pipeline(args):
         joblib.dump(scaler, args.output.replace(".csv", "_scaler.joblib"))
         if pca_model is not None:
             joblib.dump(pca_model, args.output.replace(".csv", "_pca.joblib"))
+        resid_path = args.output.replace(".csv", "_resid.joblib")
+        joblib.dump(
+            {
+                "x_cols": x_cols,
+                "scaler": resid_scaler,
+                "model": resid_model,
+            },
+            resid_path,
+        )
 
         if not args.quiet:
             print(f"\nSaved: {args.output}")

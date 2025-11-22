@@ -10,11 +10,11 @@
   "thresholds": {
     "IF": 0.5819281502465358,
     "LOF": 1.4091107394745739,
-    "PPCA_MAH": 187.91664234926176,
+    "PPCA_MAH": 313.4553374009581,
     "HDBSCAN": 0.6414829003709551,
     "COPULA": 10.945787152000579
   },
-  "fused_threshold": 0.9669545454545453,
+  "fused_threshold": 0.9665454545454544,
   "evals": {
     "IF": {
       "silhouette": 0.6564588780856757,
@@ -27,9 +27,9 @@
       "dbi": 2.4241959627003564
     },
     "PPCA_MAH": {
-      "silhouette": 0.6638522394654176,
-      "dunn": 0.04860102119093928,
-      "dbi": 0.8117841558764
+      "silhouette": 0.663227905643115,
+      "dunn": 0.07369482756451694,
+      "dbi": 0.712271721251315
     },
     "HDBSCAN": {
       "silhouette": 0.6608233646727995,
@@ -50,5 +50,20 @@
   "weights": {},
   "use_pca": true,
   "use_fa": false,
-  "pca_components": 7
+  "pca_components": 7,
+  "feature_columns": [
+    "nb_floor",
+    "nb_appart",
+    "Total Electricity Consumption (kwH)",
+    "lat",
+    "long",
+    "Area in m^2",
+    "year_norm_z",
+    "kwh_residual",
+    "kwh_resid_abs",
+    "kwh_per_m2",
+    "kwh_per_appt",
+    "kwh_per_floor",
+    "resid_per_m2"
+  ]
 }

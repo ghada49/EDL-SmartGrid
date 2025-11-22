@@ -85,6 +85,10 @@ def create_app() -> FastAPI:
 
     app.mount("/static", StaticFiles(directory=PLOTS_DIR), name="plots")
     app.mount("/model_plots", StaticFiles(directory=PLOTS_DIR), name="model_plots")
+    
+    # Serve ticket attachments
+    UPLOADS_DIR = REPO_ROOT / "data" / "uploads"
+    app.mount("/data/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
     @app.get("/health")
     def health():

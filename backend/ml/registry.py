@@ -58,12 +58,15 @@ def save_new_model_version(
         import pandas as pd
         df = pd.read_csv(scores_csv)
         n_samples = int(len(df))
-        n_features = int(len(df.select_dtypes("number").columns))
+        n_features = len(meta["feature_columns"])
     except Exception:
         n_samples = None
         n_features = None
 
     REGISTRY_DIR.mkdir(parents=True, exist_ok=True)
+    # Use true training feature set, not all numeric columns in anomaly_scores.csv
+    feat_cols = meta.get("feature_columns", [])
+    n_features = len(feat_cols) if feat_cols else None
 
     # Determine version (history length + 1)
     if HISTORY_FILE.exists():
@@ -115,7 +118,9 @@ def save_new_model_version(
             "pca": str(Path(str(base) + "_pca.joblib").relative_to(REPO_ROOT))
                      if Path(str(base) + "_pca.joblib").exists()
                      else None,
+            "residual_model": str(Path(str(base) + "_resid.joblib").relative_to(REPO_ROOT)),
         },
+        "meta":meta,
     }
     card["is_active"] = True
     card["activated_at"] = _now_iso()

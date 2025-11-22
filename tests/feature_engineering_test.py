@@ -65,32 +65,76 @@ def _resolve_raw_path() -> str:
 
 def _canonicalize_for_model(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Ensure the columns required by the anomaly model exist with the exact names it expects:
-      - build_year
-      - nb_appart
-      - Total Electricity Consumption (kwH)
-    and keep nb_floor, lat, long as-is.
+    Ensure the model sees canonical column names:
 
-    This is where we map human Excel names → model canonical names.
+      IDs:
+        - FID  -> fid      (identifier, never used as feature)
+      Structure:
+        - "Number of floors"           -> nb_floor
+        - "Number of apartments"       -> nb_appart
+      Energy:
+        - "Total electricity consumption (kWh)"
+          -> "Total Electricity Consumption (kwH)"
+      Year:
+        - "Building's construction year" -> build_year
+      Geo:
+        - "Latitude" / 'latitude' / 'LAT'    -> lat
+        - "Longitude" / 'longitude' / 'LON'  -> long
     """
     rename_map = {}
 
-    # Year column
+    # Helper: case-insensitive matcher
+    cols_lower = {c.lower(): c for c in df.columns}
+
+    def has(col_name: str) -> bool:
+        return col_name in df.columns
+
+    def has_ci(pattern: str) -> str | None:
+        return cols_lower.get(pattern.lower())
+
+    # --- IDs ---
+    if "fid" not in df.columns and "FID" in df.columns:
+        rename_map["FID"] = "fid"
+
+    # --- Year ---
     if "build_year" not in df.columns:
-        # common alternative from your logs
-        if "Building's construction year" in df.columns:
-            rename_map["Building's construction year"] = "build_year"
+        orig = has_ci("building's construction year")
+        if orig:
+            rename_map[orig] = "build_year"
 
-    # Apartments
+    # --- Floors ---
+    if "nb_floor" not in df.columns:
+        orig = has_ci("number of floors")
+        if orig:
+            rename_map[orig] = "nb_floor"
+
+    # --- Apartments ---
     if "nb_appart" not in df.columns:
-        if "Number of apartments" in df.columns:
-            rename_map["Number of apartments"] = "nb_appart"
+        orig = has_ci("number of apartments")
+        if orig:
+            rename_map[orig] = "nb_appart"
 
-    # Total kWh – model expects "Total Electricity Consumption (kwH)"
+    # --- Total kWh ---
     if "Total Electricity Consumption (kwH)" not in df.columns:
-        # Your log shows: "Total electricity consumption (kWh)"
-        if "Total electricity consumption (kWh)" in df.columns:
-            rename_map["Total electricity consumption (kWh)"] = "Total Electricity Consumption (kwH)"
+        # The Excel header you showed
+        orig = has_ci("total electricity consumption (kwh)")
+        if orig:
+            rename_map[orig] = "Total Electricity Consumption (kwH)"
+
+    # --- Latitude / Longitude ---
+    if "lat" not in df.columns:
+        for pat in ["latitude", "lat"]:
+            orig = has_ci(pat)
+            if orig:
+                rename_map[orig] = "lat"
+                break
+
+    if "long" not in df.columns:
+        for pat in ["longitude", "long", "lon"]:
+            orig = has_ci(pat)
+            if orig:
+                rename_map[orig] = "long"
+                break
 
     if rename_map:
         print("[FE] Renaming columns for model compatibility:")
@@ -99,6 +143,7 @@ def _canonicalize_for_model(df: pd.DataFrame) -> pd.DataFrame:
         df = df.rename(columns=rename_map)
 
     return df
+
 
 
 def main():
@@ -131,15 +176,24 @@ def main():
     # 3) Feature Engineering pipeline
     fe = FeatureEngineering(df)
     fe.apply_pipeline(
-        year_col="build_year",       # after rename this MUST exist
-        year_out="year_norm",        # min-shifted column (gets skew fixes)
-        add_year_z=True,             # adds year_norm_z
+        year_col="build_year",        # canonical year
+        year_out="year_norm",         # min-shifted year
+        add_year_z=True,              # will create year_norm_z
         skew_threshold=1.0,
+        # Don't transform IDs / geo coordinates
         skew_exclude={"fid", "lat", "long"},
+        # Correlation pruning: NEVER drop our core modelling columns
         corr_threshold=0.85,
-        corr_exclude={"fid", "lat", "long", "kwh", "Total Electricity Consumption (kwH)"},
+        corr_exclude={
+            "fid",                           # ID, never a feature
+            "lat", "long",                   # geo
+            "Total Electricity Consumption (kwH)",  # target-like
+            "Area in m^2",
+            "year_norm_z",                   # residual regressor
+        },
     )
     df_processed = fe.df
+
 
     # 4) Save
     df_processed.to_csv(OUT_CSV, index=False)

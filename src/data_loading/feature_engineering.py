@@ -143,7 +143,8 @@ class FeatureEngineering:
           3) Otherwise, keep the earlier (leftmost) column and drop the later one
         """
         import numpy as np
-
+        if threshold is None:
+            return self
         exclude = set() if exclude is None else set(exclude)
 
         corr = self.df.corr(numeric_only=True).abs()

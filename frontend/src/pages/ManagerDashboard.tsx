@@ -6,6 +6,8 @@ import TicketManagementPanel from "./TicketManagementPanel";
 import { Tabs } from "../components/Tabs";
 import OverviewTab from "./manager/OverviewTab";
 import SchedulingTab from "./manager/SchedulingTab";
+import InferenceTab from "./manager/InferenceTab";
+
 import FeedbackPanel from "../components/FeedbackPanel";
 
 import { uploadDataset, getDatasetHistory, DQ } from "../api/ops";
@@ -149,14 +151,15 @@ const ManagerDashboard: React.FC = () => {
   // ===============================
   // TABS
   // ===============================
-  const [tab, setTab] = useState<
-    | "Overview"
-    | "Scheduling"
-    | "Map"
-    | "Reporting"
-    | "Tickets"
-    | "Case Management"
-  >("Overview");
+const [tab, setTab] = useState<
+  | "Overview"
+  | "Scheduling"
+  | "Map"
+  | "Reporting"
+  | "Tickets"
+  | "Case Management"
+  | "Inference"
+>("Overview");
 
   const loadMapPoints = async () => {
     setMapLoading(true);
@@ -289,6 +292,7 @@ const ManagerDashboard: React.FC = () => {
             "Case Management",
             "Map",
             "Tickets",
+            "Inference", 
           ]}
           active={tab}
           onChange={(t) => setTab(t as any)}
@@ -672,6 +676,11 @@ const ManagerDashboard: React.FC = () => {
             </div>
           </div>
         )}
+        {tab === "Inference" && (
+  <div className="eco-card">
+    <InferenceTab />
+  </div>
+)}
       </div>
     </div>
   );
