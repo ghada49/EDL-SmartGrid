@@ -807,20 +807,23 @@ const InspectorRoutes: React.FC = () => {
                         <button
                           className="btn-eco sm"
                           onClick={async () => {
-                            await confirmCase(c.id);
-                            const rows = await listCases({ inspector_id: user_id });
-                            setMyCases(rows);
-                          }}
+                          if (!user_id) return;           // guard so inspector_id is defined
+                          await confirmCase(c.id);
+                          const rows = await listCases({ inspector_id: user_id });
+                          setMyCases(rows);
+                        }}
                         >
                           Confirm
                         </button>
                         <button
                           className="btn-outline sm"
                           onClick={async () => {
-                            await rejectCase(c.id);
-                            const rows = await listCases({ inspector_id: user_id });
-                            setMyCases(rows);
-                          }}
+                              if (!user_id) return;
+                              await rejectCase(c.id);
+                              const rows = await listCases({ inspector_id: user_id });
+                              setMyCases(rows);
+                            }}
+
                         >
                           Reject
                         </button>

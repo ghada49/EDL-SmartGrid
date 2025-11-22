@@ -1504,3 +1504,84 @@ body > header:first-of-type {
   overflow-y: auto;
   padding-bottom: 6px;
 }
+
+
+/* Inference card tweaks */
+.inference-card {
+  min-height: auto;
+}
+
+/* Little pill label next to the icon */
+.eco-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(46, 125, 50, 0.08);
+  border: 1px solid rgba(46, 125, 50, 0.25);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1b5e20;
+}
+
+/* Circular icon container */
+.eco-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+/* Status badge on the right */
+.eco-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1b5e20;
+  background: #e8f5e9;
+  border: 1px solid rgba(46, 125, 50, 0.25);
+}
+
+.eco-badge.glassy {
+  background: rgba(232, 245, 233, 0.85);
+  backdrop-filter: blur(6px);
+}
+
+/* File dropzone style (you already set inline styles; this just centralizes them) */
+.eco-dropzone:hover {
+  border-color: rgba(46, 125, 50, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* Compact table rows for inference results */
+.eco-table.compact .eco-thead,
+.eco-table.compact .eco-row {
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+
+/* Disabled state for the green button */
+.btn-eco:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+  transform: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
