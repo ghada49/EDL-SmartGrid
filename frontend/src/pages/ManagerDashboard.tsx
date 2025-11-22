@@ -108,6 +108,7 @@ const ManagerDashboard: React.FC = () => {
   const [assignStart, setAssignStart] = useState("");
   const [assignEnd, setAssignEnd] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
   const [assignError, setAssignError] = useState<string | null>(null);
 
   const loadCases = async () => {
@@ -207,12 +208,14 @@ const [tab, setTab] = useState<
     setAssignLng(match ? String(match.lng) : "");
     setAssignModalOpen(true);
     setAssignError(null);
+    setAssignSuccess(null);
     setSuggestions([]);
   };
 
   const closeAssignModal = () => {
     setAssignModalOpen(false);
     setAssignError(null);
+    setAssignSuccess(null);
     setSuggestions([]);
   };
 
@@ -221,6 +224,7 @@ const [tab, setTab] = useState<
       setAssignError("No case selected to suggest for.");
       return;
     }
+    setAssignSuccess(null);
     const payload: any = { strategy: assignStrategy, top_k: assignTopK, case_id: assignCaseId };
     if (assignLat.trim() !== "" && assignLng.trim() !== "") {
       payload.lat = Number(assignLat);
@@ -263,8 +267,7 @@ const [tab, setTab] = useState<
 
       await assignVisit(payload);
       await applyCaseFilters();
-      alert("Appointment created.");
-      closeAssignModal();
+      setAssignSuccess("Appointment created.");
     } catch (err: any) {
       const detail = err?.response?.data?.detail || err?.message || "Failed to assign";
       setAssignError(detail);
@@ -305,85 +308,98 @@ const [tab, setTab] = useState<
 
         {/* ================= CASE MANAGEMENT TAB ================= */}
         {tab === "Case Management" && (
-          <section className="eco-grid two">
-            <div className="eco-card">
+          <section className="eco-main-panel">
+            <div className="eco-card eco-card--full case-management-card">
               <div className="eco-card-head">
-                <h3>Case Management Panel</h3>
+                <div>
+                  <p className="eco-muted" style={{ margin: 0 }}>Case Management</p>
+                  <h3>Case Management Panel</h3>
+                </div>
               </div>
 
               {/* FILTERS */}
-              <div className="eco-actions" style={{ gap: 8 }}>
-                <select
-                  className="auth-input"
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                  <option value="">All Statuses</option>
-                  {CASE_STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  className="auth-input"
-                  value={filterInspector}
-                  onChange={(e) => setFilterInspector(e.target.value)}
-                  style={{ marginTop: 8 }}
-                >
-                  <option value="">Any Inspector</option>
-                  {users
-                    .filter((u) => u.role === "Inspector")
-                    .map((u) => (
-                      <option key={u.id} value={String(u.id)}>
-                        {u.full_name || u.email}
+              <div className="case-filter-grid">
+                <label className="case-filter-field">
+                  <span>Status</span>
+                  <select
+                    className="auth-input"
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  >
+                    <option value="">All Statuses</option>
+                    {CASE_STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
                       </option>
                     ))}
-                </select>
+                  </select>
+                </label>
+
+                <label className="case-filter-field">
+                  <span>Inspector</span>
+                  <select
+                    className="auth-input"
+                    value={filterInspector}
+                    onChange={(e) => setFilterInspector(e.target.value)}
+                  >
+                    <option value="">Any Inspector</option>
+                    {users
+                      .filter((u) => u.role === "Inspector")
+                      .map((u) => (
+                        <option key={u.id} value={String(u.id)}>
+                          {u.full_name || u.email}
+                        </option>
+                      ))}
+                  </select>
+                </label>
 
                 <button className="btn-outline" onClick={applyCaseFilters}>
                   Apply Filters
                 </button>
-                <button className="btn-eco" onClick={loadCases} style={{ marginTop: 8 }}>
+                <button className="btn-eco" onClick={loadCases}>
                   Reload Cases
                 </button>
               </div>
 
               {/* CASE LIST */}
-              {loadingCases && <p>Loading cases...</p>}
-              {cases.map((c) => (
-                <div className="eco-row" key={c.id}>
-                  <span>Case #{c.id}</span>
-                  <span>Status: {c.status}</span>
-                  <span>Inspector: {c.inspector_name || "-"}</span>
+              <div className="case-management-list">
+                {loadingCases && <p className="eco-muted">Loading cases...</p>}
+                {!loadingCases && cases.length === 0 && (
+                  <p className="eco-muted">No cases match the current filters.</p>
+                )}
+                {cases.map((c) => (
+                  <div className="eco-row" key={c.id}>
+                    <span>Case #{c.id}</span>
+                    <span>Status: {c.status}</span>
+                    <span>Inspector: {c.inspector_name || "-"}</span>
 
-                  <div className="eco-actions">
-                    <button
-                      className="btn-outline sm"
-                      onClick={async () => {
-                        setDetailId(c.id);
-                        try {
-                          setDetail(await getCaseDetail(c.id));
-                        } catch (err) {
-                          console.error(err);
-                        }
-                      }}
-                    >
-                      View
-                    </button>
-                    {["new", "pending", "rejected"].includes((c.status || "").toLowerCase()) ? (
-                      <button className="btn-eco sm" onClick={() => openAssignModal(c)}>
-                        Assign Inspector
+                    <div className="eco-actions">
+                      <button
+                        className="btn-outline sm"
+                        onClick={async () => {
+                          setDetailId(c.id);
+                          try {
+                            setDetail(await getCaseDetail(c.id));
+                          } catch (err) {
+                            console.error(err);
+                          }
+                        }}
+                      >
+                        View
                       </button>
-                    ) : (
-                      <button disabled className="disabled-btn">
-                        Assign Inspector
-                      </button>
-                    )}
+                      {["new", "pending", "rejected"].includes((c.status || "").toLowerCase()) ? (
+                        <button className="btn-eco sm" onClick={() => openAssignModal(c)}>
+                          Assign Inspector
+                        </button>
+                      ) : (
+                        <button disabled className="disabled-btn">
+                          Assign Inspector
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
         )}
@@ -415,7 +431,7 @@ const [tab, setTab] = useState<
         {/* Suggest & Assign modal (from former tab) */}
         {assignModalOpen && (
           <div className="eco-modal">
-            <div className="eco-modal-content" style={{ maxWidth: 960 }}>
+            <div className="eco-modal-content assign-modal" style={{ maxWidth: 1080 }}>
               <button
                 className="eco-modal-close"
                 aria-label="Close suggest and assign"
@@ -423,111 +439,121 @@ const [tab, setTab] = useState<
               >
                 &times;
               </button>
-              <h3 style={{ marginTop: 0 }}>
-                Suggest & Assign {assignCaseId ? `(Case #${assignCaseId})` : ""}
-              </h3>
-              <div className="eco-grid two">
-                <div className="eco-card" style={{ minHeight: "100%" }}>
-                  <div className="eco-card-head">
-                    <h3>Suggest</h3>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
-                      <p className="eco-muted" style={{ marginBottom: 4 }}>
-                        Case
-                      </p>
+              <div className="assign-header">
+                <h3>Suggest &amp; Assign {assignCaseId ? `(Case #${assignCaseId})` : ""}</h3>
+                <p className="eco-muted">Pick a window, then assign the best inspector.</p>
+                {assignSuccess && (
+                  <div className="eco-alert eco-alert-success">{assignSuccess}</div>
+                )}
+                {assignError && !assignSuccess && (
+                  <div className="eco-alert eco-alert-error">{assignError}</div>
+                )}
+              </div>
+              <div className="assign-grid">
+                <div className="eco-card assign-card">
+                  <div className="assign-meta">
+                    <div>
+                      <p className="eco-muted">Case</p>
                       <div className="assign-pill">
                         {assignCaseId ? caseLabel.get(assignCaseId) || `Case #${assignCaseId}` : "--"}
                       </div>
                     </div>
-                    <div className="col-span-2">
-                      <p className="eco-muted" style={{ marginBottom: 4 }}>
-                        Target coordinates
-                      </p>
+                    <div>
+                      <p className="eco-muted">Target coordinates</p>
                       <div className="assign-pill">
                         {assignLat && assignLng
                           ? `${assignLat}, ${assignLng}`
                           : "No coordinates available for this case"}
                       </div>
                     </div>
+                    <div className="assign-filters">
+                      <label>
+                        <span>Strategy</span>
+                        <select
+                          className="eco-input"
+                          value={assignStrategy}
+                          onChange={(e) => setAssignStrategy(e.target.value as any)}
+                        >
+                          <option value="proximity">Proximity</option>
+                          <option value="workload">Current load</option>
+                        </select>
+                      </label>
+                      <label>
+                        <span>Top K</span>
+                        <input
+                          className="eco-input"
+                          type="number"
+                          min={1}
+                          max={10}
+                          value={assignTopK}
+                          onChange={(e) => setAssignTopK(Number(e.target.value))}
+                        />
+                      </label>
+                      <button className="btn-eco suggest-btn" onClick={doSuggest}>
+                        Suggest
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="eco-table compact mt-3">
+                    <div className="eco-thead">
+                      <span>Inspector</span>
+                      <span>Score</span>
+                      <span>Reason</span>
+                      <span>Assign</span>
+                    </div>
+                    {suggestions.length === 0 && (
+                      <div className="eco-row">
+                        <span className="eco-muted">No suggestions yet.</span>
+                        <span />
+                        <span />
+                        <span />
+                      </div>
+                    )}
+                    {suggestions.map((s) => (
+                      <div className="eco-row" key={s.inspector_id}>
+                        <span>{s.inspector_name}</span>
+                        <span>{s.score}</span>
+                        <span className="text-slate-500">{s.reason}</span>
+                        <span className="assign-actions">
+                          <button className="btn-eco sm" onClick={() => doAssign(s.inspector_id)}>
+                            Assign
+                          </button>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="eco-card assign-card">
+                  <div className="eco-card-head">
+                    <h3>New Appointment Window</h3>
+                    <p className="eco-muted" style={{ margin: 0 }}>
+                      Pick times, then click Assign on a suggestion.
+                    </p>
+                  </div>
+                  <div className="assign-dates">
                     <label>
-                      Strategy
-                      <select
+                      <span>Start</span>
+                      <input
+                        type="datetime-local"
                         className="eco-input"
-                        value={assignStrategy}
-                        onChange={(e) => setAssignStrategy(e.target.value as any)}
-                      >
-                        <option value="proximity">Proximity</option>
-                        <option value="workload">Current load</option>
-                      </select>
+                        value={assignStart}
+                        onChange={(e) => setAssignStart(e.target.value)}
+                      />
                     </label>
                     <label>
-                      Top K
+                      <span>End</span>
                       <input
+                        type="datetime-local"
                         className="eco-input"
-                        type="number"
-                        min={1}
-                        max={10}
-                        value={assignTopK}
-                        onChange={(e) => setAssignTopK(Number(e.target.value))}
+                        value={assignEnd}
+                        onChange={(e) => setAssignEnd(e.target.value)}
                       />
                     </label>
                   </div>
-                  <div className="mt-3">
-                    <button className="btn-eco" onClick={doSuggest}>
-                      Suggest
-                    </button>
-                  </div>
-                  {assignError && <p className="text-sm text-red-600 mt-2">{assignError}</p>}
-
-                  {suggestions.length > 0 && (
-                    <div className="eco-table compact mt-4">
-                      <div className="eco-thead">
-                        <span>Inspector</span>
-                        <span>Score</span>
-                        <span>Reason</span>
-                        <span>Assign</span>
-                      </div>
-                      {suggestions.map((s) => (
-                        <div className="eco-row" key={s.inspector_id}>
-                          <span>{s.inspector_name}</span>
-                          <span>{s.score}</span>
-                          <span className="text-slate-500">{s.reason}</span>
-                          <span>
-                            <button className="btn-eco sm" onClick={() => doAssign(s.inspector_id)}>
-                              Assign
-                            </button>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="eco-card">
-                  <div className="eco-card-head">
-                    <h3>New Appointment Window</h3>
-                  </div>
-                  <label>
-                    Start
-                    <input
-                      type="datetime-local"
-                      className="eco-input"
-                      value={assignStart}
-                      onChange={(e) => setAssignStart(e.target.value)}
-                    />
-                  </label>
-                  <label className="mt-2 block">
-                    End
-                    <input
-                      type="datetime-local"
-                      className="eco-input"
-                      value={assignEnd}
-                      onChange={(e) => setAssignEnd(e.target.value)}
-                    />
-                  </label>
-                  <p className="text-sm text-slate-500 mt-2">
-                    Pick times, then click <em>Assign</em> on a suggestion.
+                  <p className="eco-muted" style={{ marginTop: 10 }}>
+                    Time fields are required before assigning.
                   </p>
                 </div>
               </div>

@@ -135,7 +135,7 @@ export default function OverviewTab() {
 
         <div className="eco-card">
           <div className="eco-card-head">
-            <h3>Workload (this week)</h3>
+            <h3>Workload</h3>
           </div>
           <div className="eco-table compact">
             <div className="eco-thead">

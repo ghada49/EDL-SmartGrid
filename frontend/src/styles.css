@@ -1110,6 +1110,12 @@ textarea.auth-input {
   border: 1px solid #ffe1a3;
 }
 
+.eco-alert-success {
+  background: #ecfdf3;
+  color: #0f5132;
+  border: 1px solid #c4e3cf;
+}
+
 /* Loading overlays (if any modals use eco-modal) */
 .eco-modal {
   position: fixed;
@@ -1243,6 +1249,100 @@ body > header:first-of-type {
   max-width: 1200px; /* adjust to taste */
 }
 
+.case-management-card {
+  width: 100%;
+  max-width: 1250px;
+}
+
+.case-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.case-filter-field span {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
+  color: #27592d;
+  font-size: 0.95rem;
+}
+
+.case-management-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.assign-modal {
+  background: #f8faf9;
+  border-radius: 20px;
+  border: 1px solid #d9e8da;
+  box-shadow: 0 28px 68px rgba(0, 0, 0, 0.22);
+}
+
+.assign-header {
+  margin-bottom: 14px;
+}
+
+.assign-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.assign-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+}
+
+.assign-card {
+  min-height: auto;
+  gap: 10px;
+}
+
+.assign-meta {
+  display: grid;
+  gap: 10px;
+}
+
+.assign-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.assign-filters label span {
+  display: block;
+  font-weight: 700;
+  color: #27592d;
+  margin-bottom: 4px;
+}
+
+.suggest-btn {
+  width: 100%;
+  height: 100%;
+}
+
+.assign-error {
+  color: #b53a2e;
+  margin: 2px 0 0;
+  font-size: 0.9rem;
+}
+
+.assign-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.assign-dates {
+  display: grid;
+  gap: 10px;
+}
+
 /* Optional: make the page background feel less “empty” */
 .ms-home.eco-page .page-shell {
   max-width: 1400px;
@@ -1334,6 +1434,26 @@ body > header:first-of-type {
 .inspector-chip-role {
   font-size: 0.7rem;
   color: #4b5563;
+}
+.inspector-chip-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.inspector-id-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: #ecfdf3;
+  border: 1px solid #c4e3cf;
+  color: #0f3f2a;
+  font-weight: 700;
+  font-size: 0.95rem;
 }
 .home-base-actions {
   margin-top: 20px;        /* increase spacing from inputs */

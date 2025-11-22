@@ -17,6 +17,14 @@ const splitDescription = (description: string | null | undefined) => {
   return { summary, followups: parts };
 };
 
+const redactFollowupForCitizen = (fu: string) => {
+  const match = fu.match(/^\[Follow-up (.+?) [–-] ([^\]]+)\]:\s*(.*)$/);
+  if (!match) return fu;
+  const [, meta, actor, body] = match;
+  const actorLabel = actor.includes("@") ? "Manager" : actor;
+  return `[Follow-up ${meta} – ${actorLabel}]: ${body}`;
+};
+
 const API_BASE = "http://127.0.0.1:8000";
 
 const TrackTicket: React.FC = () => {
@@ -123,7 +131,7 @@ const TrackTicket: React.FC = () => {
                     <ol className="eco-steps">
                       {followups.map((fu, idx) => (
                         <li key={idx} style={{ whiteSpace: "pre-wrap" }}>
-                          {fu}
+                          {redactFollowupForCitizen(fu)}
                         </li>
                       ))}
                     </ol>

@@ -684,11 +684,16 @@ const InspectorRoutes: React.FC = () => {
           </span>
         )}
         {profile && (
-          <div className="inspector-chip">
-            <span className="inspector-dot" />
-            <div className="inspector-chip-text">
-              <span className="inspector-chip-name">{profile.name}</span>
-              <span className="inspector-chip-role">Inspector</span>
+          <div className="inspector-chip-group">
+            <div className="inspector-chip">
+              <span className="inspector-dot" />
+              <div className="inspector-chip-text">
+                <span className="inspector-chip-name">{profile.name}</span>
+                <span className="inspector-chip-role">Inspector</span>
+              </div>
+            </div>
+            <div className="inspector-id-pill" aria-label="Your inspector ID">
+              ID: #{profile.id}
             </div>
           </div>
         )}
