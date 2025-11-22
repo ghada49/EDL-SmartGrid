@@ -83,7 +83,7 @@ def _training_style_full_preproc(df_raw: pd.DataFrame) -> pd.DataFrame:
         year_out="year_norm",
         add_year_z=True,
         skew_threshold=1.0,
-        skew_exclude={"fid"},
+        skew_exclude={"fid", "lat", "long", "Latitude", "Longitude"},
         corr_threshold=0.85,
         corr_exclude={"fid", "Latitude", "Longitude", "Total Electricity Consumption (kwH)"},
     )
@@ -96,7 +96,13 @@ def _training_style_full_preproc(df_raw: pd.DataFrame) -> pd.DataFrame:
     if missing:
         raise RuntimeError(f"Training-style FE is missing required columns: {missing}")
 
-    df_resid = build_residual(df_fe, x_cols=x_cols, y_col=y_col, folds=5, seed=42)
+    df_resid, _, _ = build_residual(
+        df_fe,
+        x_cols=x_cols,
+        y_col=y_col,
+        seed=42,
+    )
+
 
     # 4) Winsorization + ratios
     df_full = winsorize_and_ratios(df_resid)
