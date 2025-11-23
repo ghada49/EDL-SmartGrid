@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { FaEye, FaEyeSlash } from 'react-icons/fa'
 import { signupCitizen } from '../api/auth'
 import '../styles.css'
 
@@ -17,6 +18,8 @@ const Signup: React.FC = () => {
   const [confirm, setConfirm] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
 
   const rules: Rules = useMemo(() => ({
     length: password.length >= 8,
@@ -50,7 +53,9 @@ const Signup: React.FC = () => {
     !!fullName.trim() &&
     emailValid &&
     password.length > 0 &&
+    confirm.length > 0 &&
     !mismatch &&
+    password === confirm &&
     strength !== 'weak' &&
     !busy
 
@@ -106,16 +111,24 @@ const Signup: React.FC = () => {
             </div>
 
             {/* Password */}
-            <div className="auth-field">
+            <div className="auth-field" style={{ position: 'relative' }}>
               <label className="auth-label">Password</label>
               <input
                 className="auth-input"
                 placeholder="Create a strong password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 autoComplete="new-password"
               />
+              <button
+                type="button"
+                className="eye-btn"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
 
               {/* Show strength bar + rules only once user starts typing */}
               {password.length > 0 && (
@@ -146,16 +159,24 @@ const Signup: React.FC = () => {
             </div>
 
 
-            <div className="auth-field">
+            <div className="auth-field" style={{ position: 'relative' }}>
               <label className="auth-label">Confirm Password</label>
               <input
                 className="auth-input"
                 placeholder="Repeat password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                type="password"
+                type={showConfirm ? 'text' : 'password'}
                 autoComplete="new-password"
               />
+              <button
+                type="button"
+                className="eye-btn"
+                onClick={() => setShowConfirm((prev) => !prev)}
+                aria-label={showConfirm ? 'Hide password' : 'Show password'}
+              >
+                {showConfirm ? <FaEyeSlash /> : <FaEye />}
+              </button>
               {/* 4) mismatch helper text */}
               {mismatch && (
                 <div className="helper-error">Passwords do not match.</div>
