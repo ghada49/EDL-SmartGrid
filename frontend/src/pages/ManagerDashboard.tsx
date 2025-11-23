@@ -7,10 +7,8 @@ import { Tabs } from "../components/Tabs";
 import OverviewTab from "./manager/OverviewTab";
 import SchedulingTab from "./manager/SchedulingTab";
 import InferenceTab from "./manager/InferenceTab";
-
 import FeedbackPanel from "../components/FeedbackPanel";
 
-import { uploadDataset, getDatasetHistory, DQ } from "../api/ops";
 
 import {
   listCases,
@@ -143,11 +141,7 @@ const ManagerDashboard: React.FC = () => {
     }
   };
 
-  // ===== Dataset (kept unchanged) =====
-  const [uploadDQ, setUploadDQ] = useState<DQ | null>(null);
-  const [drift, setDrift] = useState<any[]>([]);
-  const [history, setHistory] = useState<any[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
+ 
 
   // ===============================
   // TABS

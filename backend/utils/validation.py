@@ -125,7 +125,7 @@ def calculate_missingness(df: pd.DataFrame) -> dict[str, float]:
         if name == "Building's construction year":
             year = pd.to_numeric(s, errors="coerce")
             current = datetime.utcnow().year + 1
-            miss = miss | (year < 1900) | (year > current)
+            miss = miss | (year < 1200) | (year > current)
         elif name in ("Number of floors", "Number of apartments"):
             val = pd.to_numeric(s, errors="coerce")
             miss = miss | (val <= 0)

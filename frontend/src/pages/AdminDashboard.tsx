@@ -122,6 +122,7 @@ const AdminDashboard: React.FC = () => {
   const [drift, setDrift] = useState<DriftRow[]>([]);
   const [history, setHistory] = useState<DatasetHistoryRow[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   // ───── Tabs ─────
   const [tab, setTab] = useState<
@@ -183,6 +184,20 @@ const AdminDashboard: React.FC = () => {
   if (!myRole) {
     return <div>Loading...</div>;
   }
+  useEffect(() => {
+  const fetchInitialHistory = async () => {
+    try {
+      const hist = await getDatasetHistory();
+      setHistory(hist || []);
+    } catch (err) {
+      console.warn("Failed to load initial dataset history:", err);
+    }
+  };
+
+  fetchInitialHistory();
+}, []);
+
+
 
   // ───── Filtered users based on search ─────
   const filteredUsers = users.filter((u) => {
@@ -240,8 +255,8 @@ const AdminDashboard: React.FC = () => {
         <header className="eco-hero">
           <h1 className="eco-title">Admin Console</h1>
           <p className="eco-sub">
-            Govern users, datasets, thresholds, and audit trail for the fraud
-            detection system.
+            Central console to manage user roles, curate datasets, run model
+  training jobs, and control which anomaly model is live in production.
           </p>
         </header>
 
@@ -282,8 +297,10 @@ const AdminDashboard: React.FC = () => {
                   <h3>System Overview</h3>
                 </div>
                 <p className="eco-muted">
-                  High-level view of platform usage and data governance. Use the
-                  tabs above to jump to users, datasets, or audit trail.
+                  Use this dashboard to: assign and update user roles, upload new
+  datasets and review data-quality / drift checks, launch and monitor
+  training jobs, and inspect or activate specific model versions.
+  Switch tabs to move between <strong>Users</strong>, <strong> Data &amp; Models</strong>, and the <strong>Model Registry</strong>.
                 </p>
               </>
             )}
@@ -912,7 +929,7 @@ const AdminDashboard: React.FC = () => {
                     <div className="eco-row">
                       <span>Mode / Runtime</span>
                       <span>
-                        {modelCard.mode} � {" "}
+                        {modelCard.mode} -- {" "}
                         {modelCard.duration_sec
                           ? `${modelCard.duration_sec.toFixed(1)}s`
                           : "-"}
@@ -979,7 +996,6 @@ const AdminDashboard: React.FC = () => {
                       <span>Jaccard@k</span>
                       <span>ARI</span>
                       <span>Trained at</span>
-                      <span>Status</span>
                       <span>Action</span>
                     </div>
                     {sortedModelHistory.map((m) => {
@@ -1014,13 +1030,7 @@ const AdminDashboard: React.FC = () => {
                               ? new Date(m.trained_at).toLocaleString()
                               : "-"}
                           </span>
-                          <span>
-                            {isActive ? (
-                              <span className="eco-badge">Active</span>
-                            ) : (
-                              "-"
-                            )}
-                          </span>
+
                           <span>
                             <button
                               className="btn-outline"
@@ -1052,57 +1062,7 @@ const AdminDashboard: React.FC = () => {
                     gap: 16,
                   }}
                 >
-                  <div className="eco-card glassy">
-                    <h5>PCA projection</h5>
-                    <p className="eco-muted" style={{ fontSize: "0.8rem" }}>
-                      2-D projection of latent features. Red points are flagged
-                      anomalies; blue are normal buildings.
-                    </p>
-                    <img
-                      src={`${API_BASE_URL}/static/current_pca_fused.png`}
-                      alt="PCA projection of fused model"
-                      style={{
-                        width: "100%",
-                        maxHeight: 260,
-                        objectFit: "contain",
-                        borderRadius: 12,
-                      }}
-                    />
-                  </div>
-                  <div className="eco-card glassy">
-                    <h5>Fused rank distribution</h5>
-                    <p className="eco-muted" style={{ fontSize: "0.8rem" }}>
-                      Distribution of fused anomaly scores. The red dashed line
-                      indicates the anomaly fraction cutoff.
-                    </p>
-                    <img
-                      src={`${API_BASE_URL}/static/current_fused_hist.png`}
-                      alt="Histogram of fused rank"
-                      style={{
-                        width: "100%",
-                        maxHeight: 260,
-                        objectFit: "contain",
-                        borderRadius: 12,
-                      }}
-                    />
-                  </div>
-                  <div className="eco-card glassy">
-                    <h5>Method metrics</h5>
-                    <p className="eco-muted" style={{ fontSize: "0.8rem" }}>
-                      Silhouette, Dunn, and DBI for each detector and the fused
-                      ensemble.
-                    </p>
-                    <img
-                      src={`${API_BASE_URL}/static/current_method_metrics.png`}
-                      alt="Unsupervised metrics per method"
-                      style={{
-                        width: "100%",
-                        maxHeight: 260,
-                        objectFit: "contain",
-                        borderRadius: 12,
-                      }}
-                    />
-                  </div>
+                  
                 </div>
               </>
             )}
