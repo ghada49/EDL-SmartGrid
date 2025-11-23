@@ -116,6 +116,8 @@ def list_cases(
             "status": c.status,
             "outcome": c.outcome,
             "building_id": c.building_id,
+            "lat": float(c.building.latitude) if c.building and c.building.latitude is not None else None,
+            "lng": float(c.building.longitude) if c.building and c.building.longitude is not None else None,
             "district": c.building.district if c.building else None,
             "assigned_inspector_id": c.assigned_inspector_id,
             "scheduled_inspector_id": latest_assignees.get(c.id, (None, None))[0],
@@ -319,6 +321,8 @@ def get_case_detail(case_id: int, db: Session = Depends(get_db)):
             "id": case.building.id if case.building else None,
             "name": case.building.building_name if case.building else None,
             "district": case.building.district if case.building else None,
+            "lat": float(case.building.latitude) if case.building and case.building.latitude is not None else None,
+            "lng": float(case.building.longitude) if case.building and case.building.longitude is not None else None,
         }
         if case.building
         else None,

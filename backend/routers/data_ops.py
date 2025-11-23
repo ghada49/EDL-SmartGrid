@@ -3,7 +3,13 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from ..db import get_db
 from ..models import ops as dbmodels
-from ..utils.validation import validate_csv, df_to_buildings, EXPECTED_COLUMNS, calculate_missingness
+from ..utils.validation import (
+    validate_csv,
+    df_to_buildings,
+    EXPECTED_COLUMNS,
+    calculate_missingness,
+    compute_dq,
+)
 from ..utils.pdf import create_inspection_report
 from ..utils.drift import simple_drift_report
 import os, shutil, time
@@ -48,8 +54,7 @@ async def upload_dataset(
             f.write(content)
         df = validate_csv(tmp_path)
         # Data quality basics
-        total_rows = len(df)
-        missingness = calculate_missingness(df)
+        dq = compute_dq(df)
 
         # Prepare drift report against previous latest, before updating it
         drift_columns = []
@@ -86,10 +91,7 @@ async def upload_dataset(
             "status": "ok",
             "rows_ingested": n,
             "saved_as": snapshot_path,
-            "dq": {
-                "row_count": total_rows,
-                "missingness": missingness,
-            },
+            "dq": dq,
             "columns": drift_columns,
         }
     except Exception as e:
@@ -183,14 +185,14 @@ async def drift_report(file: UploadFile = File(...), _=Depends(require_roles("Ad
     report = simple_drift_report(candidate_csv=candidate_csv, reference_csv=ref_path)
     return report
 
-
 @router.post("/analyze")
 async def analyze_dataset(
     file: UploadFile = File(...),
     _=Depends(require_roles("Admin")),
 ):
-    """Return data quality metrics and drift in one call without ingesting.
-    - Computes row_count and rule-aware missingness
+    """
+    Return data quality metrics and drift in one call without ingesting.
+    - Computes full rule-aware DQ (row_count, duplicates, per-column stats)
     - Compares against latest ingested snapshot if available
     """
     content = await file.read()
@@ -200,8 +202,7 @@ async def analyze_dataset(
         f.write(content)
 
     df = validate_csv(tmp_path)
-
-    dq = {"row_count": len(df), "missingness": calculate_missingness(df)}
+    dq = compute_dq(df)
 
     # Drift vs latest ingested if present
     ref_path = "data/latest_ingested.csv"
@@ -216,6 +217,7 @@ async def analyze_dataset(
         columns = simple_drift_report(candidate_csv=candidate_csv, reference_csv=ref_path)["columns"]
 
     return {"dq": dq, "columns": columns}
+
 @router.post("/infer-and-create-cases")
 async def infer_and_create_cases(
     file: UploadFile = File(...),
@@ -289,9 +291,41 @@ async def infer_and_create_cases(
     for _, r in df_top.iterrows():
         building_id = _find_building_id(r)
 
+        # extract coords if present
+        lat_val = None
+        lng_val = None
+        if "lat" in r and not pd.isna(r["lat"]):
+            try:
+                lat_val = float(r["lat"])
+            except Exception:
+                lat_val = None
+        if "long" in r and not pd.isna(r["long"]):
+            try:
+                lng_val = float(r["long"])
+            except Exception:
+                lng_val = None
+
+        # If no building found but coordinates exist, create a placeholder building so maps work
+        if building_id is None and lat_val is not None and lng_val is not None:
+            b = dbmodels.Building(
+                building_name=f"Anomaly #{int(r.get('rank', 0))}" if "rank" in r else "Anomaly",
+                latitude=lat_val,
+                longitude=lng_val,
+            )
+            db.add(b)
+            db.flush()
+            building_id = b.id
+        elif building_id is not None:
+            # backfill coords on existing building if missing
+            b = db.query(dbmodels.Building).get(building_id)
+            if b and (b.latitude is None or b.longitude is None) and lat_val is not None and lng_val is not None:
+                b.latitude = lat_val
+                b.longitude = lng_val
+                db.add(b)
+
         case = dbmodels.Case(
             building_id=building_id,
-            anomaly_id=None,  # optional – depends on your schema
+            anomaly_id=None,  # optional - depends on your schema
             notes="Case created from anomaly scoring",
             created_by=creator,
             status="New",  # unassigned, will appear in Case Management
@@ -312,6 +346,8 @@ async def infer_and_create_cases(
                 "rank": int(r.get("rank", 0)),
                 "FID": r.get("FID") if "FID" in r else r.get("fid"),
                 "building_id": building_id,
+                "lat": lat_val,
+                "long": lng_val,
                 "fused_score": float(r["fused_score"]),
                 "case_id": case.id,
             }

@@ -799,6 +799,7 @@ const InspectorRoutes: React.FC = () => {
               <div className="eco-thead">
                 <span>Case</span>
                 <span>Status</span>
+                <span>Lat/Long</span>
                 <span>Actions</span>
               </div>
               {filteredCases.map((c) => (
@@ -806,6 +807,19 @@ const InspectorRoutes: React.FC = () => {
                   <div className="eco-row">
                     <span>#{c.id}</span>
                   <span>{c.status}</span>
+                  <span>
+                    {(() => {
+                      const lat =
+                        c.lat ??
+                        (openDetailId === c.id ? detail?.building?.lat : undefined);
+                      const lng =
+                        c.lng ??
+                        (openDetailId === c.id ? detail?.building?.lng : undefined);
+                      return lat != null && lng != null
+                        ? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+                        : "—";
+                    })()}
+                  </span>
                   <span className="eco-actions" style={{ gap: 6 }}>
                     {c.status?.toLowerCase() === "pending" ? (
                       <>
@@ -840,7 +854,22 @@ const InspectorRoutes: React.FC = () => {
                         setOpenDetailId(c.id === openDetailId ? null : c.id);
                         if (c.id !== openDetailId) {
                           try {
-                            setDetail(await getCaseDetail(c.id));
+                            const d = await getCaseDetail(c.id);
+                            setDetail(d);
+                            // backfill lat/lng into case list if missing
+                            if (d?.building && (c.lat == null || c.lng == null)) {
+                              const { latitude: lat, longitude: lng } = {
+                                latitude: d.building.lat ?? d.building.latitude,
+                                longitude: d.building.lng ?? d.building.longitude,
+                              } as any;
+                              if (lat != null && lng != null) {
+                                setMyCases((prev) =>
+                                  prev.map((row) =>
+                                    row.id === c.id ? { ...row, lat, lng } : row
+                                  )
+                                );
+                              }
+                            }
                           } catch (err) {
                             console.error(err);
                           }
@@ -881,7 +910,7 @@ const InspectorRoutes: React.FC = () => {
                         )}
                       </span>
                     </div>
-                  ) : c.status === "Closed" ? null : (
+                  ) : c.status === "Closed" ? null : c.status?.toLowerCase() === "pending" ? null : (
                     <>
                       <div className="eco-row" style={{ background: "#f8faf8" }}>
                         <span>Photo</span>

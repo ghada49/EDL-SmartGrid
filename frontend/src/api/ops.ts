@@ -1,9 +1,6 @@
 import api from './client'
 
-export type DQ = {
-  row_count: number
-  missingness: Record<string, number>
-}
+
 
 export type UploadDatasetResponse = {
   status: string
@@ -56,6 +53,33 @@ export type DatasetHistoryRow = {
   uploaded_at: string
   status: string
 }
+export type ColumnDQ = {
+  missing_fraction: number;
+  invalid_fraction: number;
+  effective_missing_fraction: number;
+  distinct_count: number;
+  dtype: string;
+
+  min: number | null;
+  max: number | null;
+  mean: number | null;
+  std: number | null;
+  p25: number | null;
+  p50: number | null;
+  p75: number | null;
+  skewness: number | null;
+
+  z_outlier_fraction: number;
+  iqr_outlier_fraction: number;
+};
+
+export type DQ = {
+  row_count: number;
+  duplicate_rows: number;
+  duplicate_fraction: number;
+  missingness: Record<string, number>;          // for your current table
+  columns: Record<string, ColumnDQ>;            // new rich per-column stats
+};
 
 export async function getDatasetHistory() {
   const { data } = await api.get<DatasetHistoryRow[]>('/ops/datasets/history')

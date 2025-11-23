@@ -490,19 +490,44 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Data Quality */}
                 {uploadDQ && (
-                  <div className="eco-table compact" style={{ marginTop: 12 }}>
-                    <div className="eco-thead">
-                      <span>Column</span>
-                      <span>Missingness</span>
-                    </div>
-                    {Object.entries(uploadDQ.missingness).map(([c, m]) => (
-                      <div className="eco-row" key={c}>
-                        <span>{c}</span>
-                        <span>{((m as number) * 100).toFixed(1)}%</span>
+                  <>
+                    {/* High-level stats */}
+                    <div
+                      className="eco-muted"
+                      style={{ marginTop: 12, marginBottom: 8, fontSize: "0.9rem" }}
+                    >
+                      <div>
+                        <strong>Rows:</strong> {uploadDQ.row_count}
                       </div>
-                    ))}
-                  </div>
+                      <div>
+                        <strong>Duplicate rows:</strong> {uploadDQ.duplicate_rows} (
+                        {(uploadDQ.duplicate_fraction * 100).toFixed(1)}%)
+                      </div>
+                    </div>
+
+                    {/* Per-column stats */}
+                    <div className="eco-table compact">
+                      <div className="eco-thead">
+                        <span>Column</span>
+                        <span>Missing (NaN)</span>
+                        <span>Invalid (rules)</span>
+                        <span>Effective missing</span>
+                        <span>Outliers (IQR)</span>
+                      </div>
+
+                      {Object.entries(uploadDQ.columns).map(([colName, stats]) => (
+                        <div className="eco-row" key={colName}>
+                          <span>{colName}</span>
+                          <span>{(stats.missing_fraction * 100).toFixed(1)}%</span>
+                          <span>{(stats.invalid_fraction * 100).toFixed(1)}%</span>
+                          <span>{(stats.effective_missing_fraction * 100).toFixed(1)}%</span>
+                          <span>{(stats.iqr_outlier_fraction * 100).toFixed(1)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
                 )}
+
 
                 {/* Drift report */}
                 {drift.length > 0 && (

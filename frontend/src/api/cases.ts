@@ -7,6 +7,8 @@ export interface Case {
   inspector_name?: string
   district?: string
   building_id?: number
+  lat?: number | null
+  lng?: number | null
   description?: string
 }
 
