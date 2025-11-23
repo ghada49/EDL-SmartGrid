@@ -79,6 +79,14 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
         notes: customNotes || undefined,
       };
       await addFeedbackLabel(payload);
+      // Notify other views (e.g., Manager Overview fraud trend) to refresh analytics
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('feedback:added', {
+            detail: { caseId: targetCaseId, label: chosenLabel },
+          })
+        );
+      }
       // Refresh table
       if (showLogs) await load();
     } catch (e: any) {
@@ -106,7 +114,8 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
     setConfirming(true);
     setConfirmMessage(null);
     try {
-      await updateCaseStatus(embeddedCaseId, 'Closed');
+      // Backend accepts lowercase statuses only; use "closed" to ensure the update succeeds.
+      await updateCaseStatus(embeddedCaseId, 'closed');
       setConfirmMessage({ type: 'success', text: 'Case marked as Closed.' });
       if (onConfirmed) {
         await onConfirmed();
