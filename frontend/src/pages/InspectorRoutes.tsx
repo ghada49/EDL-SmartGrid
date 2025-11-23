@@ -999,12 +999,11 @@ const InspectorRoutes: React.FC = () => {
                                 );
                                 return;
                               }
-                              await submitInspectionReport(c.id, {
+                              const res = await submitInspectionReport(c.id, {
                                 inspector_id: user_id,
                                 findings,
                                 recommendation,
                               });
-                              await updateCaseStatus(c.id, "Reported");
                               setReportsByCase((prev) => ({
                                 ...prev,
                                 [c.id]: {
@@ -1017,7 +1016,9 @@ const InspectorRoutes: React.FC = () => {
                               setRecoByCase({ ...recoByCase, [c.id]: "" });
                               setFlashByCase({
                                 ...flashByCase,
-                                [c.id]: "Report submitted",
+                                [c.id]: res?.report_id
+                                  ? `Report submitted (ID #${res.report_id})`
+                                  : "Report submitted",
                               });
                               setTimeout(
                                 () =>
