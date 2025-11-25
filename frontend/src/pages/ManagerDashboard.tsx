@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { listUsers, updateUserRole, UserRow } from "../api/users";
 import { useAuth } from "../context/AuthContext";
 import TicketManagementPanel from "./TicketManagementPanel";
+import { listFeedbackLogs, FeedbackLogItem } from "../api/feedback";
 
 import { Tabs } from "../components/Tabs";
 import OverviewTab from "./manager/OverviewTab";
@@ -96,6 +97,12 @@ const ManagerDashboard: React.FC = () => {
   const [mapLoading, setMapLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
 
+  // Labels tab
+  const [feedbackLogs, setFeedbackLogs] = useState<FeedbackLogItem[]>([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [feedbackLoadedOnce, setFeedbackLoadedOnce] = useState(false);
+
   // Suggest & Assign (moved into Case Management)
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [assignCaseId, setAssignCaseId] = useState<number | null>(null);
@@ -183,6 +190,28 @@ const [tab, setTab] = useState<
   useEffect(() => {
     loadMapPoints();
   }, []);
+
+  const loadFeedbackLogs = useCallback(async () => {
+    setFeedbackLoading(true);
+    setFeedbackError(null);
+    try {
+      const data = await listFeedbackLogs();
+      setFeedbackLogs(data);
+      setFeedbackLoadedOnce(true);
+    } catch (err: any) {
+      setFeedbackError(err?.message || "Failed to load labels");
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const onFeedbackAdded = () => {
+      loadFeedbackLogs();
+    };
+    window.addEventListener("feedback:added", onFeedbackAdded as EventListener);
+    return () => window.removeEventListener("feedback:added", onFeedbackAdded as EventListener);
+  }, [loadFeedbackLogs]);
 
   const caseLabel = useMemo(
     () =>
@@ -665,7 +694,8 @@ const [tab, setTab] = useState<
                       <FeedbackPanel
                         embeddedCaseId={detailId ?? undefined}
                         showLogs={false}
-                        isClosed={detail.status === "Closed"}
+                        // Normalize status to lowercase before comparing
+                        isClosed={(detail.status || "").toLowerCase() === "closed"}
                         onConfirmed={async () => {
                           await loadCases();
                           if (detailId) {
@@ -707,6 +737,7 @@ const [tab, setTab] = useState<
     <InferenceTab />
   </div>
 )}
+
       </div>
     </div>
   );

@@ -1,9 +1,10 @@
 // src/pages/manager/OverviewTab.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { listInspectors, workload, Inspector, WorkloadItem } from "../../api/scheduling";
 import { fetchAnalytics, AnalyticsResponse } from "../../api/reports";
 import { listCases, Case } from "../../api/cases";
 import { listTickets, TicketRow } from "../../api/tickets";
+import { listFeedbackLogs, FeedbackLogItem } from "../../api/feedback";
 
 export default function OverviewTab() {
   const [ins, setIns] = useState<Inspector[]>([]);
@@ -13,6 +14,24 @@ export default function OverviewTab() {
   const [error, setError] = useState<string | null>(null);
   const [cases, setCases] = useState<Case[]>([]);
   const [tickets, setTickets] = useState<TicketRow[]>([]);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [feedbackLogs, setFeedbackLogs] = useState<FeedbackLogItem[]>([]);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackLoadedOnce, setFeedbackLoadedOnce] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [expandedPeriod, setExpandedPeriod] = useState<string | null>(null);
+
+  const refreshAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true);
+    try {
+      const analyticsData = await fetchAnalytics();
+      setAnalytics(analyticsData);
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || err?.message || "Failed to refresh analytics");
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -46,8 +65,44 @@ export default function OverviewTab() {
     new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value);
 
   const formatCoords = (lat?: number | null, lng?: number | null) => {
-    if (lat == null || lng == null) return "—";
-    return `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    if (lat == null || lng == null) return "--";
+    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  };
+
+  const loadFeedbackLogs = useCallback(async () => {
+    setFeedbackLoading(true);
+    setFeedbackError(null);
+    try {
+      const data = await listFeedbackLogs();
+      setFeedbackLogs(data);
+      setFeedbackLoadedOnce(true);
+    } catch (err: any) {
+      setFeedbackError(err?.message || "Failed to load labels");
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleFeedbackAdded = () => {
+      refreshAnalytics();
+      if (feedbackLoadedOnce) {
+        loadFeedbackLogs();
+      }
+    };
+    window.addEventListener("feedback:added", handleFeedbackAdded as EventListener);
+    return () => window.removeEventListener("feedback:added", handleFeedbackAdded as EventListener);
+  }, [refreshAnalytics, feedbackLoadedOnce, loadFeedbackLogs]);
+
+  const togglePeriod = async (period: string) => {
+    if (expandedPeriod === period) {
+      setExpandedPeriod(null);
+      return;
+    }
+    if (!feedbackLoadedOnce && !feedbackLoading) {
+      await loadFeedbackLogs();
+    }
+    setExpandedPeriod(period);
   };
 
   const totalCases = cases.length;
@@ -96,13 +151,88 @@ export default function OverviewTab() {
 
         <div className="eco-card">
           <div className="eco-card-head">
-            <h3>Fraud Trend</h3>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <h3 style={{ margin: 0 }}>Fraud Trend</h3>
+              <button
+                className="btn-outline sm"
+                onClick={refreshAnalytics}
+                disabled={analyticsLoading}
+                title="Refresh analytics after new feedback"
+              >
+                {analyticsLoading ? "Refreshing…" : "Refresh"}
+              </button>
+            </div>
           </div>
           {analytics?.fraud_trend && analytics.fraud_trend.length > 0 ? (
             <ol className="eco-steps">
               {analytics.fraud_trend.map((point) => (
                 <li key={point.period}>
-                  {point.period}: {formatPercent(point.fraud_rate)} ({point.total} labels)
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <span>
+                      {point.period}: {point.fraud} of {point.total} labels were fraud (
+                      {formatPercent(point.fraud_rate)})
+                    </span>
+                    <button
+                      className="btn-outline sm"
+                      onClick={() => togglePeriod(point.period)}
+                      disabled={feedbackLoading && expandedPeriod === point.period}
+                    >
+                      {expandedPeriod === point.period
+                        ? feedbackLoading ? "Loading…" : "Hide labels"
+                        : "View labels"}
+                    </button>
+                  </div>
+                  {expandedPeriod === point.period && (
+                    <div className="eco-table compact" style={{ marginTop: 8 }}>
+                      <div className="eco-thead">
+                        <span>Time</span>
+                        <span>Case</span>
+                        <span>Label</span>
+                      </div>
+                      {feedbackError && (
+                        <div className="eco-row">
+                          <span className="eco-error">{feedbackError}</span>
+                          <span />
+                          <span />
+                          <span />
+                          <span />
+                        </div>
+                      )}
+                      {feedbackLoading && (
+                        <div className="eco-row">
+                          <span className="eco-muted">Loading labels…</span>
+                          <span />
+                          <span />
+                          <span />
+                          <span />
+                        </div>
+                      )}
+                      {!feedbackLoading &&
+                        (() => {
+                          const labels = feedbackLogs.filter((l) => l.created_at.slice(0, 7) === point.period);
+                          if (labels.length === 0) {
+                            return (
+                              <div className="eco-row">
+                                <span className="eco-muted">No labels logged for this period.</span>
+                                <span />
+                                <span />
+                                <span />
+                                <span />
+                              </div>
+                            );
+                          }
+                          return labels.map((log) => (
+                            <div className="eco-row" key={log.id}>
+                              <span>{new Date(log.created_at).toLocaleString()}</span>
+                              <span>Case #{log.case_id}</span>
+                              <span style={{ textTransform: "capitalize" }}>
+                                {log.label === "non_fraud" ? "No Fraud" : log.label}
+                              </span>
+                            </div>
+                          ));
+                        })()}
+                    </div>
+                  )}
                 </li>
               ))}
             </ol>

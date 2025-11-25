@@ -112,7 +112,8 @@ export default function ReportingTab() {
           <ol className="eco-steps">
             {data.fraud_trend.map(point => (
               <li key={point.period}>
-                {point.period}: {formatPercent(point.fraud_rate)} ({point.total} labels)
+                {point.period}: {point.fraud} of {point.total} labels were fraud (
+                {formatPercent(point.fraud_rate)})
               </li>
             ))}
           </ol>

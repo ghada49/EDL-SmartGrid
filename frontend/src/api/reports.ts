@@ -1,6 +1,6 @@
 import { api } from './client';
 
-export type FraudTrendPoint = { period: string; fraud_rate: number; total: number };
+export type FraudTrendPoint = { period: string; fraud_rate: number; total: number; fraud: number };
 export type DistrictAlert = { district: string; total_alerts: number; alert_rate: number };
 export type ProductivityItem = { inspector: string; visits: number; closed: number };
 export type BiasPoint = { district: string; bias_score: number; fraud: number; non_fraud: number };

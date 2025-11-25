@@ -117,6 +117,7 @@ def _build_analytics(db: Session) -> Dict:
                 stats["fraud"] / stats["total"] if stats["total"] else 0.0
             ),
             "total": stats["total"],
+            "fraud": stats["fraud"],
         }
         for month, stats in sorted(month_stats.items())
     ]
