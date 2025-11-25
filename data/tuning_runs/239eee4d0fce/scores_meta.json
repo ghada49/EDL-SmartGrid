@@ -1,0 +1,55 @@
+{
+  "contamination": 0.02,
+  "methods": [
+    "IF",
+    "LOF",
+    "PPCA_MAH"
+  ],
+  "thresholds": {
+    "IF": 0.5844433710837046,
+    "LOF": 1.4036915065115474,
+    "PPCA_MAH": 187.66369679621084
+  },
+  "fused_threshold": 0.9624242424242423,
+  "evals": {
+    "IF": {
+      "silhouette": 0.653999838720472,
+      "dunn": 0.04127360315088408,
+      "dbi": 0.9912829386006649
+    },
+    "LOF": {
+      "silhouette": 0.4877766817884393,
+      "dunn": 0.028409790408254223,
+      "dbi": 2.478238679786492
+    },
+    "PPCA_MAH": {
+      "silhouette": 0.664312367785416,
+      "dunn": 0.04747078723533911,
+      "dbi": 0.8108607284887538
+    },
+    "FUSED": {
+      "silhouette": 0.6440546339737874,
+      "dunn": 0.04570186121645613,
+      "dbi": 0.9608257967160397
+    }
+  },
+  "weights": {},
+  "use_pca": true,
+  "use_fa": false,
+  "pca_components": 7,
+  "feature_columns": [
+    "nb_floor",
+    "nb_appart",
+    "Total Electricity Consumption (kwH)",
+    "lat",
+    "long",
+    "Area in m^2",
+    "year_norm_z",
+    "kwh_residual",
+    "kwh_resid_abs",
+    "kwh_per_m2",
+    "kwh_per_appt",
+    "kwh_per_floor",
+    "resid_per_m2"
+  ]
+}

@@ -1,6 +1,6 @@
 # backend/routers/ops_train.py
 
-from fastapi import APIRouter, Depends, Query, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, Query, HTTPException
 from redis import Redis
 from rq.job import Job
 
@@ -25,19 +25,27 @@ from backend.ml.training_status import (
 @router.post("")
 def start_train(
     mode: str = Query("moderate"),
-    background_tasks: BackgroundTasks = None,
 ):
+    # Our own logical job_id used by training_status + frontend
     job_id = str(uuid4())
     init_training_job(job_id, mode)
 
-    # run in background so request returns immediately
-    background_tasks.add_task(run_full_training_pipeline, job_id, mode)
+    # Enqueue the actual training function on the RQ queue
+    # We force the RQ job.id = our job_id so they stay aligned.
+    job = train_queue.enqueue(
+        run_full_training_pipeline,
+        job_id,
+        mode,
+        job_id=job_id,
+        job_timeout=100000, 
+    )
 
     return {
-        "job_id": job_id,
+        "job_id": job.id,   # same as job_id above
         "status": "queued",
         "mode": mode,
     }
+
 
 
 @router.get("/{job_id}")

@@ -1,25 +1,25 @@
 {
   "bootstrap": {
-    "spearman_rho_mean": 0.9880240338846397,
-    "spearman_rho_std": 0.0032007033874515596,
-    "jaccard_at_k_mean": 0.8630545652604477,
-    "jaccard_at_k_std": 0.07413423233199486,
-    "ari_mean": 0.913847636088454,
-    "ari_std": 0.020156178139430173,
-    "silhouette_std": 0.008050944117283992,
-    "dunn_std": 0.00971381374928661,
-    "dbi_std": 0.048108455149085926,
+    "spearman_rho_mean": 0.9879487777370608,
+    "spearman_rho_std": 0.0030488239452793058,
+    "jaccard_at_k_mean": 0.8897244503862151,
+    "jaccard_at_k_std": 0.051203327198580575,
+    "ari_mean": 0.9224129995995948,
+    "ari_std": 0.0297543037919469,
+    "silhouette_std": 0.008195074355120594,
+    "dunn_std": 0.010040354011490752,
+    "dbi_std": 0.04103728259912779,
     "B": 6,
     "subsample": 0.8
   },
   "seed_sensitivity": {
-    "spearman_rho_mean": 0.9944791575714576,
-    "spearman_rho_std": 0.0003318197812002266,
+    "spearman_rho_mean": 0.9944564013853074,
+    "spearman_rho_std": 0.0011120394075600504,
     "trials": 2
   },
   "noise_robustness": {
-    "spearman_rho_mean": 0.9943327246852038,
-    "spearman_rho_std": 0.0009214677877639743,
+    "spearman_rho_mean": 0.9950108444615516,
+    "spearman_rho_std": 0.000706167499827437,
     "sigma": 0.01,
     "trials": 2
   },

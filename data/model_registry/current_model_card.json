@@ -1,25 +1,25 @@
 {
   "model_id": "fused_if_lof_ae_ocsvm_copula",
-  "version": 7,
-  "trained_at": "2025-11-22T21:38:01.017453+00:00",
-  "mode": "fast",
-  "duration_sec": 292.24540758132935,
+  "version": 12,
+  "trained_at": "2025-11-25T14:02:50.872084+00:00",
+  "mode": "moderate",
+  "duration_sec": 1296.9779727458954,
   "data": {
     "n_samples": 1761,
     "n_features": 13,
     "source": "data/latest_ingested.csv"
   },
   "metrics": {
-    "silhouette": 0.6534956291684151,
-    "dunn": 0.04570186121645613,
-    "dbi": 0.9151834249662261
+    "silhouette": 0.6406053668834292,
+    "dunn": 0.034467763838101566,
+    "dbi": 1.0832114193463631
   },
   "stability": {
-    "bootstrap_spearman_rho": 0.9735315486994595,
-    "bootstrap_jaccard_at_k": 0.8945989370905946,
-    "bootstrap_ari": 0.939932143595569,
-    "noise_rho": 0.9823548873096146,
-    "seed_rho": 0.9938428044270569
+    "bootstrap_spearman_rho": 0.9952572057564465,
+    "bootstrap_jaccard_at_k": 0.8327996314648151,
+    "bootstrap_ari": 0.9091560326601843,
+    "noise_rho": 0.9978187335716808,
+    "seed_rho": 0.9986214322699664
   },
   "hyperparams": {
     "contamination": 0.02,
@@ -28,12 +28,12 @@
     "pca_components": 7
   },
   "files": {
-    "scores_csv": "data\\processed\\anomaly_scores.csv",
-    "meta_json": "data\\processed\\anomaly_scores_meta.json",
-    "stability_json": "data\\processed\\anomaly_scores_stability.json",
-    "scaler": "data\\processed\\anomaly_scores_scaler.joblib",
-    "pca": "data\\processed\\anomaly_scores_pca.joblib",
-    "residual_model": "data\\processed\\anomaly_scores_resid.joblib"
+    "scores_csv": "data/processed/anomaly_scores.csv",
+    "meta_json": "data/processed/anomaly_scores_meta.json",
+    "stability_json": "data/processed/anomaly_scores_stability.json",
+    "scaler": "data/processed/anomaly_scores_scaler.joblib",
+    "pca": "data/processed/anomaly_scores_pca.joblib",
+    "residual_model": "data/processed/anomaly_scores_resid.joblib"
   },
   "meta": {
     "contamination": 0.02,
@@ -41,47 +41,47 @@
       "IF",
       "LOF",
       "PPCA_MAH",
-      "HDBSCAN",
+      "OCSVM",
       "COPULA"
     ],
     "thresholds": {
-      "IF": 0.5812336035516854,
-      "LOF": 1.403691506511547,
-      "PPCA_MAH": 325.5846299329635,
-      "HDBSCAN": 0.647174356476649,
-      "COPULA": 10.958565118247407
+      "IF": 0.5782377355590824,
+      "LOF": 1.4036915065115474,
+      "PPCA_MAH": 187.66670960048086,
+      "OCSVM": 9.236515535997434e-05,
+      "COPULA": 10.95856511824741
     },
-    "fused_threshold": 0.9669318181818181,
+    "fused_threshold": 0.9519772727272726,
     "evals": {
       "IF": {
-        "silhouette": 0.6551397937097228,
+        "silhouette": 0.6562277217390599,
         "dunn": 0.04555190576231637,
-        "dbi": 0.8795978012447971
+        "dbi": 0.9764409378171872
       },
       "LOF": {
-        "silhouette": 0.4877766817884394,
-        "dunn": 0.028409790408254195,
-        "dbi": 2.4782386797864935
+        "silhouette": 0.4877766817884393,
+        "dunn": 0.028409790408254223,
+        "dbi": 2.478238679786492
       },
       "PPCA_MAH": {
-        "silhouette": 0.6636136007182007,
-        "dunn": 0.07188837152455642,
-        "dbi": 0.7121804291740846
+        "silhouette": 0.664312367785416,
+        "dunn": 0.04747078723533911,
+        "dbi": 0.8108607284887538
       },
-      "HDBSCAN": {
-        "silhouette": 0.6610322804128682,
-        "dunn": 0.02574018588795617,
-        "dbi": 0.8642528508340106
+      "OCSVM": {
+        "silhouette": 0.46944709729547646,
+        "dunn": 0.0157016235718114,
+        "dbi": 2.0283842765236106
       },
       "COPULA": {
-        "silhouette": 0.6513424763144811,
-        "dunn": 0.02565572803084202,
-        "dbi": 0.9221364653791663
+        "silhouette": 0.651342476314481,
+        "dunn": 0.02565572803084197,
+        "dbi": 0.9221364653791668
       },
       "FUSED": {
-        "silhouette": 0.6534956291684151,
-        "dunn": 0.04570186121645613,
-        "dbi": 0.9151834249662261
+        "silhouette": 0.6406053668834292,
+        "dunn": 0.034467763838101566,
+        "dbi": 1.0832114193463631
       }
     },
     "weights": {},
@@ -105,5 +105,5 @@
     ]
   },
   "is_active": true,
-  "activated_at": "2025-11-23T07:34:46.666707+00:00"
+  "activated_at": "2025-11-25T14:02:50.886910+00:00"
 }

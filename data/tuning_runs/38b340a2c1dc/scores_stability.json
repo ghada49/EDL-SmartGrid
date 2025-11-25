@@ -1,0 +1,29 @@
+{
+  "bootstrap": {
+    "spearman_rho_mean": 0.9726592009971222,
+    "spearman_rho_std": 0.007933704776393699,
+    "jaccard_at_k_mean": 0.6561692017387343,
+    "jaccard_at_k_std": 0.0576878803656687,
+    "ari_mean": 0.7426239395587948,
+    "ari_std": 0.047984665917069895,
+    "silhouette_std": 0.010727801379769942,
+    "dunn_std": 0.003868679938194857,
+    "dbi_std": 0.1668297198379124,
+    "B": 12,
+    "subsample": 0.8
+  },
+  "seed_sensitivity": {
+    "spearman_rho_mean": 0.9757027847155614,
+    "spearman_rho_std": 0.010453887228743965,
+    "trials": 3
+  },
+  "noise_robustness": {
+    "spearman_rho_mean": 0.8927033070100147,
+    "spearman_rho_std": 0.0006023201085829186,
+    "sigma": 0.01,
+    "trials": 3
+  },
+  "k_top": 140,
+  "n_samples": 1761,
+  "contamination": 0.08
+}

@@ -7,41 +7,56 @@
     "COPULA"
   ],
   "thresholds": {
-    "IF": 0.5640332900005501,
-    "LOF": 1.333615152482635,
-    "PPCA_MAH": 37.054647867447244,
-    "COPULA": -7.7522378587158505
+    "IF": 0.5648674741022115,
+    "LOF": 1.3404560313005531,
+    "PPCA_MAH": 38.98118787133262,
+    "COPULA": -7.670743829672509
   },
-  "fused_threshold": 0.9131009957325747,
+  "fused_threshold": 0.9151920341394026,
   "evals": {
     "IF": {
-      "silhouette": 0.4940510602917527,
-      "dunn": 0.026282985741191763,
-      "dbi": 2.097733024760787
+      "silhouette": 0.4963310804393321,
+      "dunn": 0.023863314215600298,
+      "dbi": 2.0433909420015812
     },
     "LOF": {
-      "silhouette": 0.3686303708928458,
-      "dunn": 0.028320792430744333,
-      "dbi": 3.6089101395848036
+      "silhouette": 0.35968337387968086,
+      "dunn": 0.025065678610450167,
+      "dbi": 3.86912201493803
     },
     "PPCA_MAH": {
-      "silhouette": 0.5046704342746711,
-      "dunn": 0.054750337567958926,
-      "dbi": 1.2583955514762688
+      "silhouette": 0.5034483948215588,
+      "dunn": 0.048664369074896796,
+      "dbi": 1.1525160176737035
     },
     "COPULA": {
-      "silhouette": 0.470416802341214,
-      "dunn": 0.005949858912026055,
-      "dbi": 2.103728107709484
+      "silhouette": 0.4721411009535879,
+      "dunn": 0.00281843292479563,
+      "dbi": 2.148123777775561
     },
     "FUSED": {
-      "silhouette": 0.461411726175197,
-      "dunn": 0.02390834707839845,
-      "dbi": 2.3339073716669234
+      "silhouette": 0.4620031680912009,
+      "dunn": 0.024508535055230558,
+      "dbi": 2.332180002215552
     }
   },
   "weights": {},
   "use_pca": false,
   "use_fa": true,
-  "pca_components": 13
+  "pca_components": 13,
+  "feature_columns": [
+    "nb_floor",
+    "nb_appart",
+    "Total Electricity Consumption (kwH)",
+    "lat",
+    "long",
+    "Area in m^2",
+    "year_norm_z",
+    "kwh_residual",
+    "kwh_resid_abs",
+    "kwh_per_m2",
+    "kwh_per_appt",
+    "kwh_per_floor",
+    "resid_per_m2"
+  ]
 }

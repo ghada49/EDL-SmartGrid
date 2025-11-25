@@ -1,0 +1,23 @@
+# docker/Dockerfile.frontend
+FROM node:20-alpine
+
+# Where the app will live inside the container
+WORKDIR /app/frontend
+
+# Copy dependency manifests first (better layer caching)
+COPY frontend/package.json frontend/package-lock.json* ./
+
+# Install dependencies (this will be preserved in a layer, but we'll reinstall in entrypoint if volume overwrites)
+RUN npm install
+
+# Copy the rest of the frontend code
+COPY frontend/ .
+
+# Make entrypoint script executable
+RUN chmod +x /app/frontend/docker-entrypoint.sh
+
+# Vite dev server port
+EXPOSE 5173
+
+# Use entrypoint script that ensures dependencies are installed
+CMD ["/app/frontend/docker-entrypoint.sh"]

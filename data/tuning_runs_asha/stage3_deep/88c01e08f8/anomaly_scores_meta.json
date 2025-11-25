@@ -7,41 +7,56 @@
     "HDBSCAN"
   ],
   "thresholds": {
-    "IF": 0.5523434024160645,
-    "LOF": 1.3903366300572004,
-    "PPCA_MAH": 140.5613443538399,
-    "HDBSCAN": 0.5151372760870869
+    "IF": 0.5562690026310556,
+    "LOF": 1.389656963557111,
+    "PPCA_MAH": 122.48431526174873,
+    "HDBSCAN": 0.5171990088118247
   },
-  "fused_threshold": 0.9361079545454546,
+  "fused_threshold": 0.9338352272727274,
   "evals": {
     "IF": {
-      "silhouette": 0.6131381058982979,
-      "dunn": 0.025355753459892612,
-      "dbi": 1.1599404446830632
+      "silhouette": 0.6143695347667667,
+      "dunn": 0.018109705329601357,
+      "dbi": 1.1759512492300233
     },
     "LOF": {
-      "silhouette": 0.5265518160583463,
-      "dunn": 0.028135212131385423,
-      "dbi": 1.8492395807734474
+      "silhouette": 0.5258347772428661,
+      "dunn": 0.028409790408254216,
+      "dbi": 1.8664865624908393
     },
     "PPCA_MAH": {
-      "silhouette": 0.6239195994188841,
-      "dunn": 0.035446003292041055,
-      "dbi": 0.8951854273873181
+      "silhouette": 0.6164736584765614,
+      "dunn": 0.026359880416719904,
+      "dbi": 1.1375472328732343
     },
     "HDBSCAN": {
-      "silhouette": 0.6200822560663699,
-      "dunn": 0.04531195088569782,
-      "dbi": 1.0628027713761927
+      "silhouette": 0.6204606887295618,
+      "dunn": 0.0457018612164561,
+      "dbi": 1.0626389203981375
     },
     "FUSED": {
-      "silhouette": 0.6093722704716705,
-      "dunn": 0.04621722810011338,
-      "dbi": 1.2318476934120743
+      "silhouette": 0.6086486894690836,
+      "dunn": 0.046295189264220174,
+      "dbi": 1.27250665008745
     }
   },
   "weights": {},
   "use_pca": true,
   "use_fa": false,
-  "pca_components": 7
+  "pca_components": 7,
+  "feature_columns": [
+    "nb_floor",
+    "nb_appart",
+    "Total Electricity Consumption (kwH)",
+    "lat",
+    "long",
+    "Area in m^2",
+    "year_norm_z",
+    "kwh_residual",
+    "kwh_resid_abs",
+    "kwh_per_m2",
+    "kwh_per_appt",
+    "kwh_per_floor",
+    "resid_per_m2"
+  ]
 }

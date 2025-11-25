@@ -7,41 +7,56 @@
     "COPULA"
   ],
   "thresholds": {
-    "IF": 0.5116794962600925,
-    "LOF": 1.3157555641104084,
-    "PPCA_MAH": 98.68889250832855,
-    "COPULA": 6.751177442635203
+    "IF": 0.5103180266343166,
+    "LOF": 1.321399610870739,
+    "PPCA_MAH": 98.59536450019982,
+    "COPULA": 6.780186819156888
   },
-  "fused_threshold": 0.897414651493599,
+  "fused_threshold": 0.8967211948790897,
   "evals": {
     "IF": {
-      "silhouette": 0.4379144810265272,
-      "dunn": 0.038310204839555065,
-      "dbi": 2.075172469797254
+      "silhouette": 0.44384308582027016,
+      "dunn": 0.016913538080101532,
+      "dbi": 2.2962625134365364
     },
     "LOF": {
-      "silhouette": 0.3653030955265375,
-      "dunn": 0.0393319359547321,
-      "dbi": 3.0146847645715344
+      "silhouette": 0.36398985982142223,
+      "dunn": 0.03636085601876292,
+      "dbi": 2.903094489682876
     },
     "PPCA_MAH": {
-      "silhouette": 0.440011068287598,
-      "dunn": 0.02137780424431333,
-      "dbi": 1.8196386621436853
+      "silhouette": 0.442386502367172,
+      "dunn": 0.017937854668487383,
+      "dbi": 1.8324231600506344
     },
     "COPULA": {
-      "silhouette": 0.4436768364476565,
-      "dunn": 0.01597202081169656,
-      "dbi": 2.126525374718002
+      "silhouette": 0.4500373999645608,
+      "dunn": 0.015899151033990904,
+      "dbi": 2.0911181653540996
     },
     "FUSED": {
-      "silhouette": 0.4599618499502913,
-      "dunn": 0.011482334882067702,
-      "dbi": 1.8325152992115048
+      "silhouette": 0.4603922472598548,
+      "dunn": 0.011921825607663425,
+      "dbi": 1.8377935479067184
     }
   },
   "weights": {},
   "use_pca": true,
   "use_fa": false,
-  "pca_components": 7
+  "pca_components": 7,
+  "feature_columns": [
+    "nb_floor",
+    "nb_appart",
+    "Total Electricity Consumption (kwH)",
+    "lat",
+    "long",
+    "Area in m^2",
+    "year_norm_z",
+    "kwh_residual",
+    "kwh_resid_abs",
+    "kwh_per_m2",
+    "kwh_per_appt",
+    "kwh_per_floor",
+    "resid_per_m2"
+  ]
 }

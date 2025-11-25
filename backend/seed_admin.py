@@ -41,7 +41,7 @@ def seed_admin() -> None:
             email=admin_email,
             hashed_password=get_password_hash(admin_password),
             role="Admin",
-            full_name="System Administrator",
+            full_name="System istrator",
         )
         db.add(admin)
         db.commit()

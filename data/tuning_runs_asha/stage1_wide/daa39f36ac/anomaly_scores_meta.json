@@ -7,41 +7,56 @@
     "COPULA"
   ],
   "thresholds": {
-    "IF": 0.559156262735656,
-    "LOF": 1.408186937546294,
-    "PPCA_MAH": 840.0511952891911,
-    "COPULA": 4.923806631733219
+    "IF": 0.5548217908978321,
+    "LOF": 1.4001788164751112,
+    "PPCA_MAH": 461.24152979652393,
+    "COPULA": 5.244682644438656
   },
-  "fused_threshold": 0.916020625889047,
+  "fused_threshold": 0.918296586059744,
   "evals": {
     "IF": {
-      "silhouette": 0.5095164894583909,
-      "dunn": 0.03118972019555963,
-      "dbi": 2.124875635733895
+      "silhouette": 0.5146985972667526,
+      "dunn": 0.04903266642443996,
+      "dbi": 1.8992097347437586
     },
     "LOF": {
-      "silhouette": 0.41975544099472245,
-      "dunn": 0.05034284322049256,
-      "dbi": 2.679536724734744
+      "silhouette": 0.4248640760670984,
+      "dunn": 0.02041862036931478,
+      "dbi": 2.643638867212258
     },
     "PPCA_MAH": {
-      "silhouette": 0.4926363208818037,
-      "dunn": 0.037628905507702363,
-      "dbi": 1.4521564112395193
+      "silhouette": 0.48480224563966473,
+      "dunn": 0.02896069683781398,
+      "dbi": 1.439288258394744
     },
     "COPULA": {
-      "silhouette": 0.4391438611840685,
-      "dunn": 0.027694054097493363,
-      "dbi": 3.098075755447942
+      "silhouette": 0.437945304696593,
+      "dunn": 0.028580718917856796,
+      "dbi": 3.155511230406109
     },
     "FUSED": {
-      "silhouette": 0.49336491868191473,
-      "dunn": 0.02191969415389566,
-      "dbi": 2.1628482744320494
+      "silhouette": 0.4926545948383803,
+      "dunn": 0.02023513047217204,
+      "dbi": 2.2285090089135933
     }
   },
   "weights": {},
   "use_pca": false,
   "use_fa": false,
-  "pca_components": null
+  "pca_components": null,
+  "feature_columns": [
+    "nb_floor",
+    "nb_appart",
+    "Total Electricity Consumption (kwH)",
+    "lat",
+    "long",
+    "Area in m^2",
+    "year_norm_z",
+    "kwh_residual",
+    "kwh_resid_abs",
+    "kwh_per_m2",
+    "kwh_per_appt",
+    "kwh_per_floor",
+    "resid_per_m2"
+  ]
 }

@@ -7,41 +7,56 @@
     "HDBSCAN"
   ],
   "thresholds": {
-    "IF": 0.5369117354847177,
-    "LOF": 1.3301460201655246,
-    "PPCA_MAH": 110.06252194481392,
-    "HDBSCAN": 0.4237959394475972
+    "IF": 0.5364168532343447,
+    "LOF": 1.341383621693525,
+    "PPCA_MAH": 108.48792460351953,
+    "HDBSCAN": 0.43404345975744807
   },
-  "fused_threshold": 0.9000853485064013,
+  "fused_threshold": 0.8968705547652916,
   "evals": {
     "IF": {
-      "silhouette": 0.5227295624888341,
-      "dunn": 0.038310204839555065,
-      "dbi": 1.5780881568115368
+      "silhouette": 0.520434789182438,
+      "dunn": 0.03686588140924779,
+      "dbi": 1.5751217642248525
     },
     "LOF": {
-      "silhouette": 0.35510665179967194,
-      "dunn": 0.049347287557839056,
-      "dbi": 3.2601433227008245
+      "silhouette": 0.3561358584603499,
+      "dunn": 0.049484130364665764,
+      "dbi": 3.111266474696181
     },
     "PPCA_MAH": {
-      "silhouette": 0.530050382042549,
-      "dunn": 0.0342563007203361,
-      "dbi": 1.2684079778566424
+      "silhouette": 0.5179799744736481,
+      "dunn": 0.02796210629693502,
+      "dbi": 1.4651333679136274
     },
     "HDBSCAN": {
-      "silhouette": 0.5391710314722006,
-      "dunn": 0.04061602399669866,
-      "dbi": 1.2492620823332574
+      "silhouette": 0.5427752431735207,
+      "dunn": 0.047999746303399884,
+      "dbi": 1.3227482724131931
     },
     "FUSED": {
-      "silhouette": 0.5103291167358827,
-      "dunn": 0.0598056618817088,
-      "dbi": 1.664904955157735
+      "silhouette": 0.5227182847738608,
+      "dunn": 0.047999746303399884,
+      "dbi": 1.560223181175519
     }
   },
   "weights": {},
   "use_pca": true,
   "use_fa": false,
-  "pca_components": 7
+  "pca_components": 7,
+  "feature_columns": [
+    "nb_floor",
+    "nb_appart",
+    "Total Electricity Consumption (kwH)",
+    "lat",
+    "long",
+    "Area in m^2",
+    "year_norm_z",
+    "kwh_residual",
+    "kwh_resid_abs",
+    "kwh_per_m2",
+    "kwh_per_appt",
+    "kwh_per_floor",
+    "resid_per_m2"
+  ]
 }

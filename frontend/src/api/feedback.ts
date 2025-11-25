@@ -27,7 +27,7 @@ export interface FeedbackLogItem {
   created_at: string;   // ISO
 }
 
-const API = (import.meta as any).env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000';
+const API = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
 
 
 function authHeaders() {

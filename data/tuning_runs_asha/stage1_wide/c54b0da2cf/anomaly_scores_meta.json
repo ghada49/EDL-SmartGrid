@@ -7,41 +7,56 @@
     "HDBSCAN"
   ],
   "thresholds": {
-    "IF": 0.5360702616501137,
-    "LOF": 1.2720300548135497,
-    "PPCA_MAH": 31.670075751484433,
-    "HDBSCAN": 0.6294687049631505
+    "IF": 0.5367997051452118,
+    "LOF": 1.2619393218657255,
+    "PPCA_MAH": 31.467688592187905,
+    "HDBSCAN": 0.6294951559957833
   },
-  "fused_threshold": 0.884068278805121,
+  "fused_threshold": 0.8827027027027029,
   "evals": {
     "IF": {
-      "silhouette": 0.44141255556934866,
-      "dunn": 0.02390834707839845,
-      "dbi": 2.4497578449819564
+      "silhouette": 0.44421829248595285,
+      "dunn": 0.024508535055230558,
+      "dbi": 2.384591938041938
     },
     "LOF": {
-      "silhouette": 0.26758329324689106,
-      "dunn": 0.02227389307462366,
-      "dbi": 4.8168358406975464
+      "silhouette": 0.2612936474321192,
+      "dunn": 0.022358238984925245,
+      "dbi": 5.093997421672801
     },
     "PPCA_MAH": {
-      "silhouette": 0.42927538375168445,
-      "dunn": 0.02635973915299378,
-      "dbi": 1.720154943588067
+      "silhouette": 0.42111819241954523,
+      "dunn": 0.024539000062909704,
+      "dbi": 1.7553315964447598
     },
     "HDBSCAN": {
-      "silhouette": 0.4388449386436555,
-      "dunn": 0.011136813177157699,
-      "dbi": 2.249248213689452
+      "silhouette": 0.43838872378710386,
+      "dunn": 0.011438054312014513,
+      "dbi": 2.2596223166012877
     },
     "FUSED": {
-      "silhouette": 0.4170815002279482,
-      "dunn": 0.028432611536462607,
-      "dbi": 2.368366270089008
+      "silhouette": 0.4170140065554101,
+      "dunn": 0.02847023767501526,
+      "dbi": 2.4266490936379563
     }
   },
   "weights": {},
   "use_pca": false,
   "use_fa": true,
-  "pca_components": 13
+  "pca_components": 13,
+  "feature_columns": [
+    "nb_floor",
+    "nb_appart",
+    "Total Electricity Consumption (kwH)",
+    "lat",
+    "long",
+    "Area in m^2",
+    "year_norm_z",
+    "kwh_residual",
+    "kwh_resid_abs",
+    "kwh_per_m2",
+    "kwh_per_appt",
+    "kwh_per_floor",
+    "resid_per_m2"
+  ]
 }

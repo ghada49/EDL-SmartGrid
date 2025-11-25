@@ -1,7 +1,62 @@
-version: "3"
+version: "3.9"
 
 services:
   redis:
     image: redis:7
+    container_name: redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: eece-backend
+    env_file:
+      - backend.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: eece-worker
+    env_file:
+      - backend.env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    command: ["/app/backend/docker-worker-entrypoint.sh"]
+    volumes:
+      - ./data:/app/data
+      - .:/app
+    depends_on:
+      - redis
+      - backend
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: eece-frontend
+    environment:
+      # Use localhost since browser accesses backend via host machine
+      - VITE_API_BASE=http://localhost:8000
+    volumes:
+      - ./frontend:/app/frontend
+      # Use named volume for node_modules to avoid conflicts with host
+      - frontend_node_modules:/app/frontend/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  frontend_node_modules:
