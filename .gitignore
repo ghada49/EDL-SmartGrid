@@ -15,5 +15,3 @@ data/_candidate_*/
 data/_analyze_*/
 data/case_attachments/
 
-.env
-*.env
