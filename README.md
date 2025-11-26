@@ -1,4 +1,3 @@
-```markdown
 # ⚡ Electricity Anomaly Detection & Field Inspection Platform for EDL
  (EECE 490/690 – Fall 2025-2026)
 
@@ -166,6 +165,5 @@ This allows anomaly detection at **scale, accuracy, and objectivity**.
 
 ---
 
-```
 
  
