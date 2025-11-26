@@ -14,4 +14,10 @@ data/_upload_*/
 data/_candidate_*/
 data/_analyze_*/
 data/case_attachments/
+data/datasets/
+data/processed/
+data/temp/
+data/tuning_runs/
+data/tuning_runs_asha/
+data/tuning_runs_fast/
 
