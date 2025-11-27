@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 type Ticket = {
   id: number;
@@ -7,6 +8,7 @@ type Ticket = {
   description: string;
   photo_path?: string | null;
   created_at?: string;
+  user_id?: string;
 };
 
 const splitDescription = (description: string | null | undefined) => {
@@ -32,12 +34,16 @@ const TrackTicket: React.FC = () => {
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const token = localStorage.getItem("token");
+  const { token, user_id } = useAuth();
 
   // --------------------------------------------
   // Load all citizen tickets automatically
   // --------------------------------------------
   const loadTickets = async () => {
+    if (!token) {
+      setMessage({ type: "error", text: "You must be logged in to view your tickets." });
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/tickets/mine`, {
         headers: {
@@ -46,8 +52,16 @@ const TrackTicket: React.FC = () => {
       });
 
       const data = await res.json();
-      if (res.ok) setTickets(data);
-      else setMessage({ type: "error", text: data.detail || "Error loading tickets" });
+      if (!res.ok) {
+        setMessage({ type: "error", text: data.detail || "Error loading tickets" });
+        setTickets([]);
+        return;
+      }
+
+      const filtered = Array.isArray(data)
+        ? data.filter((t: Ticket) => !user_id || t.user_id === user_id)
+        : [];
+      setTickets(filtered);
     } catch (err) {
       setMessage({ type: "error", text: "Network error loading tickets" });
     }
@@ -55,7 +69,7 @@ const TrackTicket: React.FC = () => {
 
   useEffect(() => {
     loadTickets();
-  }, []);
+  }, [token, user_id]);
 
   // --------------------------------------------
   // Add follow-up
@@ -64,6 +78,10 @@ const TrackTicket: React.FC = () => {
     const note = notes[ticketId]?.trim();
     if (!note) {
       setMessage({ type: "error", text: "Enter a follow-up note before submitting." });
+      return;
+    }
+    if (!token) {
+      setMessage({ type: "error", text: "You must be logged in to add a follow-up." });
       return;
     }
 
