@@ -9,15 +9,28 @@ node_modules/
 .vite/
 dist/
 
-data/uploads/
+# Ignore data directory contents but keep directory structure
+data/uploads/*
+!data/uploads/.gitkeep
 data/_upload_*/
 data/_candidate_*/
 data/_analyze_*/
-data/case_attachments/
-data/datasets/
-data/processed/
+data/case_attachments/*
+!data/case_attachments/.gitkeep
+data/datasets/*
+!data/datasets/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
 data/temp/
 data/tuning_runs/
 data/tuning_runs_asha/
 data/tuning_runs_fast/
+data/plots/*
+!data/plots/.gitkeep
+data/tmp/*
+!data/tmp/.gitkeep
+data/model_registry/*
+!data/model_registry/.gitkeep
+data/raw/*
+!data/raw/.gitkeep
 
