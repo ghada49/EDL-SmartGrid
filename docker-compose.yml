@@ -3,7 +3,7 @@ version: "3.9"
 services:
   redis:
     image: redis:7
-    container_name: redis
+    container_name: edl-redis
     ports:
       - "6380:6379"
 
@@ -11,7 +11,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
-    container_name: eece-backend
+    container_name: edl-backend
     env_file:
       - backend.env
     environment:
@@ -28,7 +28,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
-    container_name: eece-worker
+    container_name: edl-worker
     env_file:
       - backend.env
     environment:
@@ -45,7 +45,7 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
-    container_name: eece-frontend
+    container_name: edl-frontend
     environment:
       # Use localhost since browser accesses backend via host machine
       - VITE_API_BASE=http://localhost:8000
