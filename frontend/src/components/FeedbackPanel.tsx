@@ -105,18 +105,18 @@ const FeedbackPanel: React.FC<FeedbackPanelProps> = ({
 
   const handleEmbeddedSelect = async (value: typeof label) => {
     setLabel(value);
-    if (!embeddedCaseId) return;
-    await performSubmit(embeddedCaseId, value);
   };
 
   const handleConfirm = async () => {
     if (!embeddedCaseId) return;
     setConfirming(true);
     setConfirmMessage(null);
+    setError(null);
     try {
-      // Backend accepts lowercase statuses only; use "closed" to ensure the update succeeds.
+      // Save the selected label first, then close the case.
+      await performSubmit(embeddedCaseId, label);
       await updateCaseStatus(embeddedCaseId, 'closed');
-      setConfirmMessage({ type: 'success', text: 'Case marked as Closed.' });
+      setConfirmMessage({ type: 'success', text: 'Label saved and case marked as Closed.' });
       if (onConfirmed) {
         await onConfirmed();
       }

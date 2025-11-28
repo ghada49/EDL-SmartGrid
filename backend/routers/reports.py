@@ -35,16 +35,18 @@ def _build_analytics(db: Session) -> Dict:
     if case_ages:
         avg_case_age = sum((now - row[0]).days for row in case_ages) / len(case_ages)
 
+    # Normalize labels in SQL to avoid case/whitespace issues
+    normalized_label = func.lower(func.trim(FeedbackLabel.label))
     total_feedback = db.query(func.count(FeedbackLabel.id)).scalar() or 0
     fraud_feedback = (
         db.query(func.count(FeedbackLabel.id))
-        .filter(FeedbackLabel.label == "fraud")
+        .filter(normalized_label == "fraud")
         .scalar()
         or 0
     )
     nonfraud_feedback = (
         db.query(func.count(FeedbackLabel.id))
-        .filter(FeedbackLabel.label == "non_fraud")
+        .filter(normalized_label == "non_fraud")
         .scalar()
         or 0
     )
@@ -96,18 +98,19 @@ def _build_analytics(db: Session) -> Dict:
     month_stats: Dict[str, Dict[str, int]] = defaultdict(lambda: {"fraud": 0, "total": 0})
     bias_stats: Dict[str, Dict[str, int]] = defaultdict(lambda: {"fraud": 0, "non_fraud": 0})
     for label in labels:
+        label_val = (label.label or "").strip().lower()
         created = label.created_at or now
         month_key = created.strftime("%Y-%m")
         month_stats[month_key]["total"] += 1
-        if label.label == "fraud":
+        if label_val == "fraud":
             month_stats[month_key]["fraud"] += 1
 
         district = "Unknown"
         if label.case and label.case.building and label.case.building.district:
             district = label.case.building.district
-        if label.label == "fraud":
+        if label_val == "fraud":
             bias_stats[district]["fraud"] += 1
-        else:
+        elif label_val == "non_fraud":
             bias_stats[district]["non_fraud"] += 1
 
     fraud_trend = [
@@ -242,5 +245,3 @@ def export_reports(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
-
-

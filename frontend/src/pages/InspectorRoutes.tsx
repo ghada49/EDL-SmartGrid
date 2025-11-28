@@ -330,13 +330,11 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({ inspector }) => {
           <span>Date</span>
           <span>Time</span>
           <span>Case</span>
-          <span>Status</span>
-          <span>Actions</span>
+          <span>Lat / Long</span>
         </div>
         {(!inspector || items.length === 0) && (
           <div className="eco-row">
             <span>{loading ? "Loading..." : "No appointments"}</span>
-            <span>--</span>
             <span>--</span>
             <span>--</span>
             <span>--</span>
@@ -350,26 +348,10 @@ const TodaySchedule: React.FC<TodayScheduleProps> = ({ inspector }) => {
                 {fmtHM(a.start)} - {fmtHM(a.end)}
               </span>
               <span>#{a.case_id}</span>
-              <span>{a.status}</span>
-              <span className="eco-actions" style={{ flexWrap: "wrap", gap: 6 }}>
-                {a.status === "pending" && (
-                  <>
-                    <button
-                      className="btn-eco sm"
-                      disabled={busy}
-                      onClick={() => confirmVisit(a.id)}
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      className="btn-outline sm"
-                      disabled={busy}
-                      onClick={() => respond(a.id, "reject")}
-                    >
-                      Reject
-                    </button>
-                  </>
-                )}
+              <span>
+                {typeof a.lat === "number" && typeof a.lng === "number"
+                  ? `${a.lat.toFixed(4)}, ${a.lng.toFixed(4)}`
+                  : "--"}
               </span>
             </div>
           ))}
@@ -756,10 +738,12 @@ const InspectorRoutes: React.FC = () => {
     </div>
   );
 
+  // Hide closed cases from My Cases; inspectors shouldn't act on them
+  const activeCases = myCases.filter((c) => (c.status || "").toLowerCase() !== "closed");
   const filteredCases =
     caseStatusFilter == null
-      ? myCases
-      : myCases.filter((c) => (c.status || "").toLowerCase() === caseStatusFilter);
+      ? activeCases
+      : activeCases.filter((c) => (c.status || "").toLowerCase() === caseStatusFilter);
 
   const casesCard = (
     <div className="eco-card inspector-cases">
