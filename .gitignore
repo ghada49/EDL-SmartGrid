@@ -8,6 +8,7 @@ app.db
 node_modules/
 .vite/
 dist/
+backend.env
 
 # Ignore data directory contents but keep directory structure
 data/uploads/*
@@ -34,3 +35,5 @@ data/model_registry/*
 data/raw/*
 !data/raw/.gitkeep
 
+app.db
+backend.env
