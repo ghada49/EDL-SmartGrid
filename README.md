@@ -1,169 +1,218 @@
-# ⚡ Electricity Anomaly Detection & Field Inspection Platform for EDL
- (EECE 490/690 – Fall 2025-2026)
+
+# ⚡EDL SmartGrid
+## AI-Driven Electricity Anomaly Detection & Inspection Management Platform
+
+EDL SmartGrid is an end-to-end AI platform for detecting unusual electricity consumption in buildings and managing the full inspection lifecycle.
+
+
+
 
 ## 📌 Overview
-This project is an end-to-end AI platform that detects **unusual electricity consumption** in residential buildings and streamlines the **inspection workflow** between managers, inspectors, and citizens.
+EDL SmartGrid is a complete AI platform that detects unusual electricity consumption in residential buildings and streamlines the workflow between citizens, inspectors, managers, and admin/data-ops teams.
 
-We combine:
-- **Machine Learning models** (...)
-- **FastAPI backend** with model inference, dataset uploads, PDF reporting
-- **React frontend** for Manager, Inspector, and Citizen portals
-- **Dockerized deployment** for reproducibility
+It provides:
+- A robust ML pipeline for anomaly detection
+- A FastAPI backend for training, inference, model activation, drift reports
+- A React frontend with role-based dashboards
+- A Dockerized, reproducible deployment with backend + worker + Redis + frontend
+- A full inspection workflow connecting anomalies → cases → visits → reports
 
-The goal is to automatically flag anomalies, reduce inspection workload, and support data-driven decision-making.
+### 🎯 Goal
+To automatically flag abnormal consumption, reduce manual inspection workload, and support transparent, data-driven electricity management in Lebanon.
 
-Acknowledgment 👨‍🏫✨
 
-This project received positive feedback from Dr. Riad Chedid, who described it as “a very good and well-structured solution” during the evaluation phase.
 
----
+## 📂 Dataset Location
+The dataset used for training and evaluation lives in:
+
+``
+/Dataset/data.xlsx
+``
+
+This is the file that the Admin/Data-Ops user uploads from the portal.
+## 👨‍🏫 Acknowledgment
+This project received excellent feedback from Dr. Riad Chedid, who described it as:
+>"A very good and well-structured solution."
+
 
 ## 🚀 Features
 
 ### 🔍 Machine Learning
-...
+- Advanced preprocessing (schema fixing, imputation, Winsorization, skew correction)  
+- Residual modeling (expected vs actual kWh)  
+- Domain ratios: kWh/m², kWh/apartment, apartments/floor, residual intensity  
+- PCA-based latent space  
+- Ensemble anomaly critics:
+**IF, LOF, OCSVM, AE, Copula, PPCA-MAH, HDBSCAN, GMM, VAE**
+- Rank-fusion anomaly scoring  
+- Full stability auditing (Spearman ρ, ARI, Jaccard@K)
+- Baseline Model: One-Class SVM (OCSVM) implemented, tested, tunable, and available in the training pipeline. 
 
-### 🛠 Backend (FastAPI)
-🔐 Auth & Users
-/auth/signup, /auth/login, /auth/signup/admin
-/users/me, /users/, /users/{id}/role, /users/{id}/suspend
+*(not connected to UI but present and used in full tuning pipeline)*
+---
 
-🗂 Cases
-/cases/ (create, list)
-/cases/{id} (details, status, assign, comments, attachments)
-/cases/{id}/confirm, /cases/{id}/reject
+## 🛠 Backend (FastAPI)
 
-🕵️ Inspections
-/inspections/{case_id}/report
-/inspections/{case_id}/review
+### 🔐 Authentication
+- `/auth/signup`  
+- `/auth/login`  
+- `/auth/signup/admin`  
+- `/users/me`  
+- `/users/{id}/role`  
+- `/users/{id}/suspend`  
 
-📊 Reports & Analytics
-/reports/kpi
-/reports/analytics
-/reports/export
+### 🗂 Cases
+- Create, update, assign, confirm, reject  
+- Attachments, comments, status tracking  
 
-🧠 ML & Training
+### 🕵️ Inspections
+- Submit inspection reports  
+- Review and classify outcomes 
+- Geo-based routing with home-base location 
 
-/ops/train
-/ops/train/model/current
-/ops/models/upload
-/ops/model/activate
-/ops/drift_report
-/ops/infer-and-create-cases
-
-📅 Manager Scheduling
-Inspectors list, workload, appointments, auto-assign
-
-🎫 Tickets (Citizen)
-/tickets/ (submit)
-/tickets/mine
-/tickets/{id} + follow-up
-
-### 🌐 Frontend (React)
-- **Manager dashboard**: overview, case management, ticket management, scheduling
-- **Inspector console**: assigned cases, map  
-- **Citizen portal**: ticket submission + tracking, awarness guidelines  
-
-
-### 🐳 Docker
-- `docker-compose.yml` for backend + frontend  
-- Reproducible environment with pinned dependencies  
-- `.env` templates for configuration
-
-
-## 🧠 Machine Learning Models
-
-We use a combination of baseline and improved models:
-
-| Task | Baseline | Improved |
-|------|----------|----------|
-| Expected kWh | Huber Regressor | Random Forest |
-| Anomalies | Isolation Forest | Autoencoder |
-| Clustering | KMeans | HDBSCAN |
-
-Artifacts include:  
-- `feature_list.json`  
-- `scaler.joblib`  
-- `kwh_regressor.joblib`  
-- `if_model.joblib`  
-- `ae_model.h5`  
-- `thresholds.json`  
-- `model_card.json`
+### 📊 Analytics & ML Ops
+- `/ops/train` (full training pipeline)  
+- `/ops/model/current`  
+- `/ops/model/activate`  
+- `/ops/drift_report`  
+- `/ops/infer-and-create-cases`  
 
 ---
 
-## 🏗 Running the Project (Docker)
+## 🌐 Frontend (React)
+- **Citizen Portal:** submit/track tickets, awareness guidelines  
+- **Inspector Console:** assigned visits, map-based navigation, PDF upload
+- **Manager Dashboard:** anomalies, scheduling, KPIs, workload  
+- **Admin interface:** dataset upload, drift score, model training, model registry, user roles management
 
-### 1. Clone the repo
+---
+
+## 🐳 Dockerized Architecture
+The system runs using four containers:
+
+| Container | Purpose |
+|----------|----------|
+| **backend** | FastAPI API (API, ML inference, model registry, training endpoints) |
+| **worker** | Background ML training, tuning, drift checks |
+| **redis** | Message broker + job queue |
+| **frontend** | React user interface |
+
+---
+## 🔧 Running the Project (Docker)
+
+## 1️⃣ Clone the Repository
 ```bash
-git clone <repo-url>
-cd project
-````
-
-### 2. Create environment files
-
-```
-cp backend.env.example backend.env
+git clone https://github.com/ghada49/EDL-SmartGrid.git
+cd EDL-SmartGrid
 ```
 
-### 3. Start containers
-
+## 2️⃣ Create Environment File
+Copy example file:
 ```bash
-docker-compose up --build
+cp backend.example.env backend.env
+
 ```
+The backend will auto-create an admin:
+```
+ADMIN_EMAIL=admin@edl.gov.lb
+ADMIN_PASSWORD=Admin123!
+```
+## 3️⃣ Start the System
+```bash
+docker compose up --build
 
-### 4. Access the system
+```
+## 4️⃣ Access the Interfaces
+- Frontend: http://localhost:5173
+- Backend Docs: http://localhost:8000/docs
+## 🧭 How to Use the System
 
-* Backend Docs → [http://localhost:8000/docs](http://localhost:8000/docs)
-* Frontend → [http://localhost:5173](http://localhost:5173)
+#### 1. Create a Citizen Account
+Sign up normally (default role: citizen).
 
----
+Citizen can:
+- Submit tickets (complaints)
+- Track ticket status
+- Access awareness guidelines
 
-## 👥 User Roles
+#### 2. Log in as Admin
+Use auto-created admin:
+```
+admin@edl.gov.lb
+Admin123!
+```
+#### 3. Promote Users
+Admin → User Management → You can change Role
+Promote your citizen account to:
+- Inspector
+- Manager
+#### 4. Train a Model
+Admin → Data & Models
 
-### 👤 Citizen
+Upload:
+```
+/Dataset/data.xlsx
+```
+Then choose a training mode:
+- Fast
+- Moderate (ASHA)
+- Slow
+- Very Slow (Full Grid Search)
 
-* Submit a ticket
-* Track ticket
-* Energy awarness
+Click Start Training.
 
-### 🕵️ Inspector
+The backend:
+- sends the job to Redis
+- and the worker performs training asynchronously
 
-* Assigned cases dashboard
-* Accept/reject visits
-* Generate PDF report
+You can see:
+- training logs
+- metrics
+- stability audit
+- fused scores
+- saved model card
 
-### 👨‍💼 Manager
+#### 5. Run Inference
+Log in as Manager (or promote your account).
 
-* View all anomalies
-* Assign cases
-* Review inspection results
-* Label outcomes (Fraud / Non-Fraud / Uncertain)
-* View analytics & KPIs
+Manager → Inference
 
-### 🔧 Admin
+Steps:
 
-* Upload datasets
-* Upload/activate ML models
-* View drift reports
-* Manage user roles
+- Upload a new dataset
+- Select Top X% anomalies (based on number of inspectors available)
+- Run the inference
 
----
+The system:
 
-## 📊 Why Machine Learning?
+- applies preprocessing exactly as training
+- extracts features
+- loads saved artifacts
+- computes Mahalanobis + Copula
+- produces fused anomaly ranking
+- returns x% of buildings with highest scores
 
-Electricity consumption is multi-dimensional and depends on structure, location, and behavior.
-Simple averages cannot capture these relationships.
+This automatically creates a case for each building flagged as anomalous one.
 
-ML learns:
+#### 6. Inspector Workflow
+Log in as Inspector (a citizen account must be promoted from admin account)
+Steps:
+- Enter your Home Base (e.g., latitude 33.8, longitude 35.5)
+- View assigned cases
+- Accept or reject visits
+- After inspection:
+    - Upload PDF report
+    - Add comments
+    - Update case status
 
-* what is normal for each building
-* which patterns are suspicious
-* how consumption compares to similar buildings
-
-This allows anomaly detection at **scale, accuracy, and objectivity**.
-
----
-
-
- 
+#### 7. Manager Review & Case Closure
+- Manager views:
+    - inspection results
+    - uploaded PDFs
+    - inspector notes
+    - building details
+    - anomaly score
+- Manager labels each case as:
+    - Fraud
+    - Non-Fraud
+    - Uncertain

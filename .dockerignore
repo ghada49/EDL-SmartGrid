@@ -1,0 +1,77 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+ENV/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.vite/
+dist/
+
+# Data files (mounted as volumes, don't copy into image)
+data/
+*.db
+*.sqlite
+*.sqlite3
+app.db
+
+# Environment files (should be provided at runtime)
+.env
+.env.local
+.env.*.local
+backend.env
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+
+# Development files
+Dataset/
+requirements.lock.txt
+package-lock.json  # Frontend Dockerfile copies this explicitly, but ignore at root
+
+# Logs
+*.log
+debug_output.log
+
+# Docker
+docker-compose.yml
+docker-compose.*.yml
+.dockerignore
+
+# Other
+*.xlsx
+*.csv
+!data/**/.gitkeep
+

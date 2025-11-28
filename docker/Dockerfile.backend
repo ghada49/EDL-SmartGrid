@@ -1,4 +1,4 @@
-FROM python:3.13.5 AS backend
+FROM python:3.13-slim AS backend
 # (You can later switch to python:3.12-slim if you want, but this will work with 3.13.5)
 
 RUN python -m pip install --upgrade pip
