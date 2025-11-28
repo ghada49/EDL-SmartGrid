@@ -100,8 +100,8 @@ The system runs using four containers:
 
 ## 1️⃣ Clone the Repository
 ```bash
-git clone <repo-url>
-cd project
+git clone https://github.com/ghada49/EDL-SmartGrid.git
+cd EDL-SmartGrid
 ```
 
 ## 2️⃣ Create Environment File
