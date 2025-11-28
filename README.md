@@ -156,6 +156,7 @@ Then choose a training mode:
 - Moderate (ASHA)
 - Slow
 - Very Slow (Full Grid Search)
+
 Click Start Training.
 
 The backend:
