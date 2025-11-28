@@ -1,4 +1,8 @@
 # tests/test_preprocessing_alignment.py
+"""
+This tests whether the preprocessing and feature engineering pipelines are the same in training and inference.
+When I tested that, all tests passed.
+"""
 
 import sys
 from pathlib import Path
