@@ -28,7 +28,7 @@ from backend.security import get_password_hash
 
 def seed_admin() -> None:
     Base.metadata.create_all(bind=engine)
-    admin_email = os.getenv("ADMIN_EMAIL", "admin@municipality.gov.lb")
+    admin_email = os.getenv("ADMIN_EMAIL", "admin@edl.gov.lb")
     admin_password = os.getenv("ADMIN_PASSWORD", "Admin123!")
 
     db: Session = SessionLocal()

@@ -1181,13 +1181,6 @@ textarea.auth-input {
   margin-top: 8px;
 }
 
-/* =========================
-   (Optional) hide stray legacy header
-   ========================= */
-/* If you still see an old plain text header like
-   "Municipality • Services" above the green nav,
-   this will hide it. Remove this rule if you
-   actually need that header. */
 body > header:first-of-type {
   display: none;
 }

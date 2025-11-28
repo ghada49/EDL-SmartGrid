@@ -85,7 +85,7 @@ const Signup: React.FC = () => {
             
 
             <h2 className="auth-title">Create your account</h2>
-            <p className="auth-sub">Join the Beirut Municipality Energy Transparency Portal</p>
+            <p className="auth-sub">Join the Beirut Energy Transparency Portal</p>
 
             <div className="auth-field">
               <label className="auth-label">Full Name</label>
