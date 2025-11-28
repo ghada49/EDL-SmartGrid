@@ -107,7 +107,7 @@ cd EDL-SmartGrid
 ## 2️⃣ Create Environment File
 Copy example file:
 ```bash
-cp backend.env.example backend.env
+cp backend.example.env backend.env
 
 ```
 The backend will auto-create an admin:
@@ -117,7 +117,7 @@ ADMIN_PASSWORD=Admin123!
 ```
 ## 3️⃣ Start the System
 ```bash
-cp backend.env.example backend.env
+docker compose up --build
 
 ```
 ## 4️⃣ Access the Interfaces
