@@ -8,7 +8,7 @@ EDL SmartGrid is an end-to-end AI platform for detecting unusual electricity con
 
 
 ## 📌 Overview
-EDL SmartGrid is a complete AI platform that detects unusual electricity consumption in residential buildings and streamlines the workflow between citizens, inspectors, managers, and admin/data-ops teams.
+EDL SmartGrid is a complete AI platform that detects unusual electricity consumption in buildings and streamlines the workflow between citizens, inspectors, managers, and admin/data-ops teams.
 
 It provides:
 - A robust ML pipeline for anomaly detection
@@ -32,7 +32,7 @@ The dataset used for training and evaluation lives in:
 This is the file that the Admin/Data-Ops user uploads from the portal.
 ## 👨‍🏫 Acknowledgment
 This project received excellent feedback from Dr. Riad Chedid, who described it as:
->"A very good and well-structured solution."
+>"A very good and effective solution."
 
 
 ## 🚀 Features
@@ -48,7 +48,7 @@ This project received excellent feedback from Dr. Riad Chedid, who described it 
 - Full stability auditing (Spearman ρ, ARI, Jaccard@K)
 - Baseline Model: One-Class SVM (OCSVM) implemented, tested, tunable, and available in the training pipeline. 
 
-*(not connected to UI but present and used in full tuning pipeline)*
+(not connected to UI but present and used in full tuning pipeline)
 ---
 
 ## 🛠 Backend (FastAPI)
@@ -219,4 +219,4 @@ Steps:
 
  🎥 Feature walkthrough videos are provided to ensure users can easily navigate the system without getting lost in the many components.
  
-📌 Demo recordings are available here: ➡️ [https://drive.google.com/drive/folders/15jWC1DIvqr3y8V_3hI0Zzi7MqqOsi6Jw?usp=drive_link](https://drive.google.com/drive/folders/15jWC1DIvqr3y8V_3hI0Zzi7MqqOsi6Jw?usp=drive_link)
+📌 Demo recordings are available here: ➡️ [https://youtu.be/QuO1nUGsuns](https://youtu.be/QuO1nUGsuns)
