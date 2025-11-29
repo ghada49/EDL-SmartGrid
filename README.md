@@ -217,4 +217,5 @@ Steps:
     - Non-Fraud
     - Uncertain
 
- 🎥 The `demos/` folder contains feature walkthrough videos to ensure users can easily navigate the system without getting lost in the many components.
+ 🎥 Feature walkthrough videos are provided to ensure users can easily navigate the system without getting lost in the many components.
+📌 Demo recordings are available here: ➡️ [https://drive.google.com/drive/folders/15jWC1DIvqr3y8V_3hI0Zzi7MqqOsi6Jw?usp=drive_link](https://drive.google.com/drive/folders/15jWC1DIvqr3y8V_3hI0Zzi7MqqOsi6Jw?usp=drive_link)
