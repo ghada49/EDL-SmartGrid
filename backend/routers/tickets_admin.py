@@ -52,6 +52,11 @@ def update_ticket_status(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
+    if ticket.status == "Closed":
+        raise HTTPException(
+            status_code=400, detail="Closed tickets cannot be updated"
+        )
+
     ticket.status = status
     db.add(ticket)
     db.commit()
