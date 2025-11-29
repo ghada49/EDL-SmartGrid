@@ -47,8 +47,8 @@ This project received excellent feedback from Dr. Riad Chedid, who described it 
 - Rank-fusion anomaly scoring  
 - Full stability auditing (Spearman ρ, ARI, Jaccard@K)
 - Baseline Model: One-Class SVM (OCSVM) implemented, tested, tunable, and available in the training pipeline. 
-
 (not connected to UI but present and used in full tuning pipeline)
+
 ---
 
 ## 🛠 Backend (FastAPI)
