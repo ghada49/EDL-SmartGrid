@@ -88,6 +88,10 @@ def create_app() -> FastAPI:
     UPLOADS_DIR = REPO_ROOT / "data" / "uploads"
     app.mount("/data/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
+    # Serve case attachments
+    CASE_ATTACHMENTS_DIR = REPO_ROOT / "data" / "case_attachments"
+    app.mount("/data/case_attachments", StaticFiles(directory=CASE_ATTACHMENTS_DIR), name="case_attachments")
+    
     @app.get("/health")
     def health():
         return {"status": "ok"}

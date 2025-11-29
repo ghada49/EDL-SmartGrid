@@ -9,6 +9,8 @@ import OverviewTab from "./manager/OverviewTab";
 import SchedulingTab from "./manager/SchedulingTab";
 import InferenceTab from "./manager/InferenceTab";
 import FeedbackPanel from "../components/FeedbackPanel";
+import { API_BASE_URL } from "../api/client";
+
 
 
 import {
@@ -678,17 +680,66 @@ const [tab, setTab] = useState<
                       )}
                       {detail.attachments && detail.attachments.length > 0 && (
                         <div style={{ marginBottom: 12 }}>
-                          <p className="eco-muted">Attachments</p>
-                          <ul style={{ margin: 0, paddingLeft: 16 }}>
-                            {detail.attachments.map((at: any) => (
-                              <li key={at.id}>
+                                                   <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+                            {detail.attachments.map((at: any) => {
+                              // Extract filename from path for URL construction
+                              // Normalize path separators (handle both Windows and Unix)
+                              const normalizedPath = at.path?.replace(/\\/g, "/") || "";
+                              const pathParts = normalizedPath.split("/");
+                              const filename = pathParts[pathParts.length - 1] || at.filename;
+                              const imageUrl = `${API_BASE_URL}/data/case_attachments/${filename}`;
+                              const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(at.filename || filename);
+                              
+                              return (
+                                <div key={at.id} style={{ marginBottom: 8 }}>
+                                  {isImage ? (
+                                    <div>
+                                      <img
+                                        src={imageUrl}
+                                        alt={at.filename}
+                                        style={{
+                                         maxWidth: "300px",
+                                          maxHeight: "300px",
+                                          borderRadius: "4px",
+                                          border: "1px solid #ddd",
+                                          cursor: "pointer",
+                                        }}
+                                        onClick={() => window.open(imageUrl, "_blank")}
+                                        onError={(e) => {
+                                          // Fallback to filename if image fails to load
+                                          const target = e.target as HTMLImageElement;
+                                          target.style.display = "none";
+                                          const fallback = target.nextElementSibling as HTMLElement;
+                                          if (fallback) fallback.style.display = "block";
+                                        }}
+                                      />
+                                      <div style={{ display: "none", fontSize: "12px", color: "#666" }}>
+
                                 {at.filename}{" "}
                                 {at.uploaded_at
                                   ? `(${new Date(at.uploaded_at).toLocaleString()})`
                                   : ""}
-                              </li>
-                            ))}
-                          </ul>
+                                       </div>
+                                    </div>
+                                  ) : (
+                                    <div style={{ fontSize: "12px", color: "#666" }}>
+                                      <a
+                                        href={imageUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ color: "#0066cc", textDecoration: "underline" }}
+                                      >
+                                        {at.filename}
+                                      </a>
+                                      {at.uploaded_at
+                                        ? ` (${new Date(at.uploaded_at).toLocaleString()})`
+                                        : ""}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                       <FeedbackPanel
