@@ -216,3 +216,5 @@ Steps:
     - Fraud
     - Non-Fraud
     - Uncertain
+
+ 🎥 The demos/ folder contains feature walkthrough videos to ensure users can easily navigate the system without getting lost in the many components.
