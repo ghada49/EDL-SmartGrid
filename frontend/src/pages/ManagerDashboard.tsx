@@ -306,7 +306,7 @@ const [tab, setTab] = useState<
         <header className="eco-hero">
           <h1 className="eco-title">Manager Console</h1>
           <p className="eco-sub">
-            Manage datasets, models, thresholds, tickets, and cases.
+            Oversee datasets, run models, tune anomaly cutoffs, and manage tickets and cases.
           </p>
         </header>
 
