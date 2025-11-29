@@ -96,6 +96,7 @@ const TicketManagementPanel: React.FC = () => {
             <select
               className="auth-input"
               defaultValue=""
+              disabled={t.status === "Closed"}
               onChange={async (e) => {
                 const v = e.target.value;
                 if (!v) return;
